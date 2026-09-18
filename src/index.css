@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --primary: #0f172a;
+    --primary-light: #1e293b;
+    --secondary: #ea580c;
+    --accent: #f97316;
+    --corporate-navy: #091e3a;
+    --corporate-blue: #1d4ed8;
+    --surface: #ffffff;
+    --background: #f8fafc;
+    --border-color: #e2e8f0;
+    --container-width: 100%;
+    --card-radius: 12px;
+  }
+
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.ofix-container {
+  width: 100%;
+  max-width: 100%;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .ofix-container {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .ofix-container {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .ofix-container {
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}

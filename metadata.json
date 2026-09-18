@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix Remix Ofixbaze Nigeria Limited",
+  "description": "Office Furniture, HP Toner, Ink, UPS \u0026 Shredders Lagos Nigeria | Ofixbaze Nigeria Limited",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
