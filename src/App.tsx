@@ -268,7 +268,13 @@ export default function App() {
   const [cmsPages, setCmsPages] = useState<CMSPage[]>(() => {
     try {
       const saved = localStorage.getItem('ofixbaze_cms_pages');
-      return saved ? JSON.parse(saved) : INITIAL_CMS_PAGES;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.map((p: CMSPage) => (p.slug === 'home' && p.status === 'published' && (!p.updatedAt || p.updatedAt === '07 Sep 2026') ? { ...p, status: 'draft' } : p));
+        }
+      }
+      return INITIAL_CMS_PAGES;
     } catch {
       return INITIAL_CMS_PAGES;
     }

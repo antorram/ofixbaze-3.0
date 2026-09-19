@@ -30,7 +30,11 @@ import {
   Check,
   Flame,
   Award,
-  BadgeCheck
+  BadgeCheck,
+  Paintbrush,
+  ClipboardCheck,
+  CopyCheck,
+  BookmarkPlus
 } from 'lucide-react';
 import { 
   CMSSection, 
@@ -66,11 +70,20 @@ interface CMSSectionRendererProps {
   onUpdateWidgetContent?: (widgetId: string, updates: Partial<CMSWidget['content']>) => void;
   onDuplicateWidget?: (sectionId: string, widget: CMSWidget) => void;
   onDeleteWidget?: (sectionId: string, widgetId: string) => void;
+  onMoveWidget?: (sectionId: string, widgetId: string, direction: 'up' | 'down') => void;
+  onCopyWidget?: (widget: CMSWidget) => void;
+  onCopyWidgetStyle?: (settings: any) => void;
+  onPasteWidgetStyle?: (sectionId: string, widgetId: string) => void;
   onMoveSection?: (direction: 'up' | 'down') => void;
   onDuplicateSection?: () => void;
   onDeleteSection?: () => void;
+  onCopySection?: (section: CMSSection) => void;
+  onCopySectionStyle?: (settings: any) => void;
+  onPasteSectionStyle?: (sectionId: string) => void;
   onSaveSectionAsTemplate?: () => void;
   onToggleSectionVisibility?: () => void;
+  hasCopiedWidgetStyle?: boolean;
+  hasCopiedSectionStyle?: boolean;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
   deviceMode?: 'desktop' | 'tablet' | 'mobile';
@@ -97,11 +110,20 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
   onUpdateWidgetContent,
   onDuplicateWidget,
   onDeleteWidget,
+  onMoveWidget,
+  onCopyWidget,
+  onCopyWidgetStyle,
+  onPasteWidgetStyle,
   onMoveSection,
   onDuplicateSection,
   onDeleteSection,
+  onCopySection,
+  onCopySectionStyle,
+  onPasteSectionStyle,
   onSaveSectionAsTemplate,
   onToggleSectionVisibility,
+  hasCopiedWidgetStyle = false,
+  hasCopiedSectionStyle = false,
   canMoveUp = false,
   canMoveDown = false,
   deviceMode = 'desktop'
@@ -163,16 +185,39 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
 
   // Compute background styling
   const isSectionBoxed = section.settings.layout === 'boxed';
-  const sectionMaxWidth = isSectionBoxed ? (section.settings.contentMaxWidth || section.settings.maxWidth) : undefined;
+  const widthMode = section.settings.contentWidthMode || (isSectionBoxed ? 'boxed' : 'full-width');
+  const sectionMaxWidth = isSectionBoxed 
+    ? (section.settings.customWidth || section.settings.contentMaxWidth || section.settings.maxWidth || '1320px') 
+    : undefined;
 
-  const computedSectionShadow = section.settings.boxShadow || (
-    section.settings.shadowPreset === 'sm' ? '0 1px 2px 0 rgb(0 0 0 / 0.05)' :
-    section.settings.shadowPreset === 'md' ? '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' :
-    section.settings.shadowPreset === 'lg' ? '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)' :
-    section.settings.shadowPreset === 'xl' ? '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' :
-    section.settings.shadowPreset === '2xl' ? '0 25px 50px -12px rgb(0 0 0 / 0.25)' :
-    undefined
-  );
+  let computedSectionShadow = section.settings.boxShadow;
+  if (!computedSectionShadow) {
+    if (section.settings.shadowPreset === 'sm') computedSectionShadow = '0 1px 2px 0 rgb(0 0 0 / 0.05)';
+    else if (section.settings.shadowPreset === 'md') computedSectionShadow = '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)';
+    else if (section.settings.shadowPreset === 'lg') computedSectionShadow = '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
+    else if (section.settings.shadowPreset === 'xl') computedSectionShadow = '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)';
+    else if (section.settings.shadowPreset === '2xl') computedSectionShadow = '0 25px 50px -12px rgb(0 0 0 / 0.25)';
+    else if (section.settings.shadowPreset === 'custom' || (section.settings.shadowBlur !== undefined || section.settings.shadowX !== undefined || section.settings.shadowY !== undefined)) {
+      const sx = section.settings.shadowX ?? 0;
+      const sy = section.settings.shadowY ?? 4;
+      const sb = section.settings.shadowBlur ?? 12;
+      const ss = section.settings.shadowSpread ?? 0;
+      const sc = section.settings.shadowColor || 'rgba(0,0,0,0.15)';
+      computedSectionShadow = `${sx}px ${sy}px ${sb}px ${ss}px ${sc}`;
+    }
+  }
+
+  const hasSectionCornerRadius =
+    section.settings.borderTopLeftRadius !== undefined ||
+    section.settings.borderTopRightRadius !== undefined ||
+    section.settings.borderBottomRightRadius !== undefined ||
+    section.settings.borderBottomLeftRadius !== undefined;
+
+  const computedSectionRadius = hasSectionCornerRadius
+    ? `${section.settings.borderTopLeftRadius ?? 0}px ${section.settings.borderTopRightRadius ?? 0}px ${section.settings.borderBottomRightRadius ?? 0}px ${section.settings.borderBottomLeftRadius ?? 0}px`
+    : section.settings.borderRadius !== undefined
+      ? `${section.settings.borderRadius}px`
+      : undefined;
 
   const sectionBgStyle: React.CSSProperties = {
     backgroundColor: section.settings.bgColor || undefined,
@@ -187,20 +232,28 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
     color: section.settings.textColor || undefined,
     paddingTop: `${sectionPt}px`,
     paddingBottom: `${sectionPb}px`,
-    paddingLeft: isSectionBoxed && sectionPl !== undefined ? `${sectionPl}px` : undefined,
-    paddingRight: isSectionBoxed && sectionPr !== undefined ? `${sectionPr}px` : undefined,
+    paddingLeft: (isSectionBoxed && widthMode !== 'full-bleed' && sectionPl !== undefined) ? `${sectionPl}px` : undefined,
+    paddingRight: (isSectionBoxed && widthMode !== 'full-bleed' && sectionPr !== undefined) ? `${sectionPr}px` : undefined,
     marginTop: section.settings.marginTop ? `${section.settings.marginTop}px` : undefined,
     marginBottom: section.settings.marginBottom ? `${section.settings.marginBottom}px` : undefined,
     minHeight: section.settings.minHeight || undefined,
+    height: section.settings.height || undefined,
     maxWidth: sectionMaxWidth,
     marginLeft: isSectionBoxed ? 'auto' : undefined,
     marginRight: isSectionBoxed ? 'auto' : undefined,
-    borderRadius: section.settings.borderRadius ? `${section.settings.borderRadius}px` : undefined,
+    borderRadius: computedSectionRadius,
     borderWidth: section.settings.borderWidth ? `${section.settings.borderWidth}px` : undefined,
+    borderTopWidth: section.settings.borderTopWidth ? `${section.settings.borderTopWidth}px` : undefined,
+    borderRightWidth: section.settings.borderRightWidth ? `${section.settings.borderRightWidth}px` : undefined,
+    borderBottomWidth: section.settings.borderBottomWidth ? `${section.settings.borderBottomWidth}px` : undefined,
+    borderLeftWidth: section.settings.borderLeftWidth ? `${section.settings.borderLeftWidth}px` : undefined,
     borderColor: section.settings.borderColor || undefined,
     borderStyle: section.settings.borderStyle || 'solid',
     boxShadow: computedSectionShadow,
-    overflow: section.settings.overflow || undefined
+    overflow: section.settings.overflow || undefined,
+    opacity: section.settings.opacity !== undefined ? section.settings.opacity : undefined,
+    zIndex: section.settings.zIndex || undefined,
+    position: (section.settings.position as any) || 'relative'
   };
 
   // Section column preset classes for widget layout inside the section
@@ -285,6 +338,36 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
     const isFullWidthWidget = widget.type === 'image' && 
       (widget.settings.imageWidthMode === 'full-width' || widget.settings.imageWidthMode === 'full-bleed' || widget.settings.imageAlignment === 'stretch');
 
+    // Compute widget shadow
+    let computedWidgetShadow = widget.settings.boxShadow;
+    if (!computedWidgetShadow) {
+      if (widget.settings.shadowPreset === 'sm') computedWidgetShadow = '0 1px 2px 0 rgb(0 0 0 / 0.05)';
+      else if (widget.settings.shadowPreset === 'md') computedWidgetShadow = '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)';
+      else if (widget.settings.shadowPreset === 'lg') computedWidgetShadow = '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)';
+      else if (widget.settings.shadowPreset === 'xl') computedWidgetShadow = '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)';
+      else if (widget.settings.shadowPreset === '2xl') computedWidgetShadow = '0 25px 50px -12px rgb(0 0 0 / 0.25)';
+      else if (widget.settings.shadowPreset === 'custom' || (widget.settings.shadowBlur !== undefined || widget.settings.shadowX !== undefined || widget.settings.shadowY !== undefined)) {
+        const sx = widget.settings.shadowX ?? 0;
+        const sy = widget.settings.shadowY ?? 4;
+        const sb = widget.settings.shadowBlur ?? 12;
+        const ss = widget.settings.shadowSpread ?? 0;
+        const sc = widget.settings.shadowColor || 'rgba(0,0,0,0.15)';
+        computedWidgetShadow = `${sx}px ${sy}px ${sb}px ${ss}px ${sc}`;
+      }
+    }
+
+    const hasWidgetCornerRadius = 
+      widget.settings.borderTopLeftRadius !== undefined ||
+      widget.settings.borderTopRightRadius !== undefined ||
+      widget.settings.borderBottomRightRadius !== undefined ||
+      widget.settings.borderBottomLeftRadius !== undefined;
+
+    const computedWidgetRadius = hasWidgetCornerRadius
+      ? `${widget.settings.borderTopLeftRadius ?? 0}px ${widget.settings.borderTopRightRadius ?? 0}px ${widget.settings.borderBottomRightRadius ?? 0}px ${widget.settings.borderBottomLeftRadius ?? 0}px`
+      : widget.settings.borderRadius !== undefined 
+        ? `${widget.settings.borderRadius}px` 
+        : undefined;
+
     const widgetStyle: React.CSSProperties = {
       color: widget.settings.textColor || undefined,
       backgroundColor: widget.settings.bgColor || undefined,
@@ -298,15 +381,32 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
         : (widget.settings.paddingRight !== undefined ? `${widget.settings.paddingRight}px` : undefined),
       marginTop: widget.settings.marginTop !== undefined ? `${widget.settings.marginTop}px` : undefined,
       marginBottom: widget.settings.marginBottom !== undefined ? `${widget.settings.marginBottom}px` : undefined,
-      borderRadius: widget.settings.borderRadius !== undefined ? `${widget.settings.borderRadius}px` : undefined,
+      marginLeft: widget.settings.marginLeft !== undefined ? `${widget.settings.marginLeft}px` : undefined,
+      marginRight: widget.settings.marginRight !== undefined ? `${widget.settings.marginRight}px` : undefined,
+      borderRadius: computedWidgetRadius,
       borderWidth: widget.settings.borderWidth !== undefined ? `${widget.settings.borderWidth}px` : undefined,
+      borderTopWidth: widget.settings.borderTopWidth !== undefined ? `${widget.settings.borderTopWidth}px` : undefined,
+      borderRightWidth: widget.settings.borderRightWidth !== undefined ? `${widget.settings.borderRightWidth}px` : undefined,
+      borderBottomWidth: widget.settings.borderBottomWidth !== undefined ? `${widget.settings.borderBottomWidth}px` : undefined,
+      borderLeftWidth: widget.settings.borderLeftWidth !== undefined ? `${widget.settings.borderLeftWidth}px` : undefined,
       borderColor: widget.settings.borderColor || undefined,
       borderStyle: widget.settings.borderStyle || 'solid',
-      boxShadow: widget.settings.boxShadow || undefined,
+      boxShadow: computedWidgetShadow,
       textAlign: widget.settings.textAlign || 'left',
       fontFamily: widget.settings.fontFamily || undefined,
-      width: isFullWidthWidget ? '100%' : undefined
+      opacity: widget.settings.opacity !== undefined ? widget.settings.opacity : undefined,
+      width: widget.settings.width || (isFullWidthWidget ? '100%' : undefined),
+      maxWidth: widget.settings.maxWidth || undefined,
+      minHeight: widget.settings.minHeight || undefined,
+      height: widget.settings.height || undefined,
+      zIndex: widget.settings.zIndex || undefined,
+      position: (widget.settings.position as any) || 'relative'
     };
+
+    const hoverEffects = [
+      widget.settings.hoverLift ? 'hover:-translate-y-1 hover:shadow-xl transition-all duration-200' : '',
+      widget.settings.hoverZoom ? 'hover:scale-[1.02] transition-transform duration-200' : ''
+    ].filter(Boolean).join(' ');
 
     return (
       <div
@@ -327,37 +427,98 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           }
         }}
         style={widgetStyle}
-        className={`relative transition-all duration-150 ${widgetHideClasses} ${widget.settings.cssClasses || ''} ${
+        className={`relative transition-all duration-150 ${widgetHideClasses} ${hoverEffects} ${widget.settings.cssClasses || ''} ${
           isWidgetSelected
-            ? 'ring-2 ring-blue-500 rounded bg-blue-500/5'
+            ? 'outline outline-2 outline-blue-500 rounded bg-blue-500/5'
             : isBuilderMode
-            ? 'hover:ring-1 hover:ring-blue-300/80 rounded'
+            ? 'hover:outline hover:outline-1 hover:outline-blue-300/80 rounded'
             : ''
         } ${isFullWidthWidget ? 'w-full' : ''}`}
       >
         {/* Builder Widget Floating Toolbar */}
         {isWidgetSelected && (
-          <div className="absolute -top-7 right-2 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-lg flex items-center gap-1.5 z-40 select-none">
-            <span className="capitalize">{widget.type.replace('_', ' ')}</span>
-            <span className="opacity-60 text-[9px]">#{widget.id.slice(-4)}</span>
-            <div className="h-3 w-px bg-white/30" />
+          <div className="absolute -top-8 left-2 bg-[#1e293b] text-white text-[10px] font-bold px-2 py-0.5 rounded-lg shadow-xl flex items-center gap-1 z-40 select-none border border-slate-700/80 animate-in fade-in">
+            <span className="capitalize text-blue-400 font-extrabold">{widget.type.replace('_', ' ')}</span>
+            <span className="text-slate-400 text-[9px]">#{widget.id.slice(-4)}</span>
+            <div className="h-3 w-px bg-slate-700 mx-0.5" />
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveWidget?.(section.id, widget.id, 'up');
+              }}
+              title="Move Up"
+              className="hover:bg-slate-700 p-1 rounded cursor-pointer text-slate-300 hover:text-white"
+            >
+              <ArrowUp className="w-3 h-3" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveWidget?.(section.id, widget.id, 'down');
+              }}
+              title="Move Down"
+              className="hover:bg-slate-700 p-1 rounded cursor-pointer text-slate-300 hover:text-white"
+            >
+              <ArrowDown className="w-3 h-3" />
+            </button>
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDuplicateWidget?.(section.id, widget);
               }}
-              title="Duplicate Element"
-              className="hover:bg-blue-700 p-0.5 rounded cursor-pointer"
+              title="Duplicate Element (Ctrl+D)"
+              className="hover:bg-slate-700 p-1 rounded cursor-pointer text-slate-300 hover:text-white"
             >
               <Copy className="w-3 h-3" />
             </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopyWidget?.(widget);
+              }}
+              title="Copy Widget (Ctrl+C)"
+              className="hover:bg-slate-700 p-1 rounded cursor-pointer text-slate-300 hover:text-white"
+            >
+              <CopyCheck className="w-3 h-3" />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopyWidgetStyle?.(widget.settings);
+              }}
+              title="Copy Style"
+              className="hover:bg-slate-700 p-1 rounded cursor-pointer text-amber-400 hover:text-amber-300"
+            >
+              <Paintbrush className="w-3 h-3" />
+            </button>
+
+            {hasCopiedWidgetStyle && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPasteWidgetStyle?.(section.id, widget.id);
+                }}
+                title="Paste Style"
+                className="hover:bg-slate-700 p-1 rounded cursor-pointer text-emerald-400 hover:text-emerald-300"
+              >
+                <ClipboardCheck className="w-3 h-3" />
+              </button>
+            )}
+
+            <div className="h-3 w-px bg-slate-700 mx-0.5" />
+
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDeleteWidget?.(section.id, widget.id);
               }}
-              title="Delete Element"
-              className="hover:bg-rose-600 p-0.5 rounded cursor-pointer text-white"
+              title="Delete Element (Del / Backspace)"
+              className="hover:bg-rose-600 p-1 rounded cursor-pointer text-rose-300 hover:text-white"
             >
               <Trash2 className="w-3 h-3" />
             </button>
@@ -1262,9 +1423,16 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
     >
       {/* Builder Section Floating Controls */}
       {isSectionSelected && (
-        <div className="absolute -top-7 left-4 bg-orange-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-t flex items-center gap-2 shadow-xl z-40 select-none">
-          <span>Section: {section.name}</span>
-          <div className="flex items-center gap-1 ml-1">
+        <div className="absolute -top-8 left-4 bg-[#0f172a] text-white text-[11px] font-bold px-2.5 py-1 rounded-t-lg flex items-center gap-2 shadow-2xl z-40 select-none border-t border-x border-slate-700">
+          <div className="flex items-center gap-1.5 text-orange-400">
+            <Layers className="w-3.5 h-3.5" />
+            <span className="truncate max-w-[130px] font-semibold">{section.name || 'Section'}</span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono uppercase bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+            {section.settings.contentWidthMode || (isSectionBoxed ? 'Boxed' : 'Full')}
+          </span>
+          <div className="h-3.5 w-px bg-slate-700" />
+          <div className="flex items-center gap-1">
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -1272,9 +1440,9 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
               }}
               disabled={!canMoveUp}
               title="Move Section Up"
-              className="hover:bg-orange-700 p-0.5 rounded disabled:opacity-30 cursor-pointer"
+              className="hover:bg-slate-800 p-1 rounded disabled:opacity-30 cursor-pointer text-slate-300 hover:text-white"
             >
-              <ArrowUp className="w-3 h-3" />
+              <ArrowUp className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={(e) => {
@@ -1283,9 +1451,9 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
               }}
               disabled={!canMoveDown}
               title="Move Section Down"
-              className="hover:bg-orange-700 p-0.5 rounded disabled:opacity-30 cursor-pointer"
+              className="hover:bg-slate-800 p-1 rounded disabled:opacity-30 cursor-pointer text-slate-300 hover:text-white"
             >
-              <ArrowDown className="w-3 h-3" />
+              <ArrowDown className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={(e) => {
@@ -1293,29 +1461,62 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
                 onDuplicateSection?.();
               }}
               title="Duplicate Section"
-              className="hover:bg-orange-700 p-0.5 rounded cursor-pointer"
+              className="hover:bg-slate-800 p-1 rounded cursor-pointer text-slate-300 hover:text-white"
             >
-              <Copy className="w-3 h-3" />
+              <Copy className="w-3.5 h-3.5" />
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopySection?.(section);
+              }}
+              title="Copy Section"
+              className="hover:bg-slate-800 p-1 rounded cursor-pointer text-slate-300 hover:text-white"
+            >
+              <CopyCheck className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCopySectionStyle?.(section.settings);
+              }}
+              title="Copy Section Style"
+              className="hover:bg-slate-800 p-1 rounded cursor-pointer text-amber-400 hover:text-amber-300"
+            >
+              <Paintbrush className="w-3.5 h-3.5" />
+            </button>
+            {hasCopiedSectionStyle && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPasteSectionStyle?.(section.id);
+                }}
+                title="Paste Section Style"
+                className="hover:bg-slate-800 p-1 rounded cursor-pointer text-emerald-400 hover:text-emerald-300"
+              >
+                <ClipboardCheck className="w-3.5 h-3.5" />
+              </button>
+            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onSaveSectionAsTemplate?.();
               }}
-              title="Save Section as Template"
-              className="hover:bg-orange-700 p-0.5 rounded cursor-pointer"
+              title="Save Section as Reusable Template"
+              className="hover:bg-slate-800 p-1 rounded cursor-pointer text-blue-400 hover:text-blue-300"
             >
-              <Layers className="w-3 h-3" />
+              <BookmarkPlus className="w-3.5 h-3.5" />
             </button>
+            <div className="h-3.5 w-px bg-slate-700" />
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDeleteSection?.();
               }}
               title="Delete Section"
-              className="hover:bg-rose-700 p-0.5 rounded cursor-pointer text-white"
+              className="hover:bg-rose-600 p-1 rounded cursor-pointer text-rose-300 hover:text-white"
             >
-              <Trash2 className="w-3 h-3" />
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -1335,19 +1536,25 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
       {/* Section Container Content */}
       <div 
         style={{
-          maxWidth: !isSectionBoxed && section.settings.contentWidthMode === 'boxed'
-            ? (section.settings.contentMaxWidth || section.settings.maxWidth)
+          maxWidth: widthMode === 'boxed'
+            ? (section.settings.contentMaxWidth || section.settings.maxWidth || '1320px')
+            : widthMode === 'custom'
+            ? (section.settings.customWidth || section.settings.contentMaxWidth || section.settings.maxWidth || '1320px')
             : undefined,
-          paddingLeft: !isSectionBoxed && sectionPl !== undefined
-            ? `${sectionPl}px`
-            : undefined,
-          paddingRight: !isSectionBoxed && sectionPr !== undefined
-            ? `${sectionPr}px`
-            : undefined,
+          marginLeft: (widthMode === 'boxed' || widthMode === 'custom') ? 'auto' : undefined,
+          marginRight: (widthMode === 'boxed' || widthMode === 'custom') ? 'auto' : undefined,
+          paddingLeft: widthMode === 'full-bleed' 
+            ? '0px' 
+            : (!isSectionBoxed && sectionPl !== undefined ? `${sectionPl}px` : undefined),
+          paddingRight: widthMode === 'full-bleed' 
+            ? '0px' 
+            : (!isSectionBoxed && sectionPr !== undefined ? `${sectionPr}px` : undefined),
         }}
         className={`relative z-10 ${
-          section.settings.contentWidthMode === 'full-width'
+          widthMode === 'full-bleed'
             ? 'w-full px-0'
+            : widthMode === 'full-width'
+            ? 'w-full px-4 sm:px-6 md:px-8'
             : isSectionBoxed
               ? 'w-full'
               : (sectionPl === undefined || sectionPr === undefined)

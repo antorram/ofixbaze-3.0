@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, ShoppingCart, Heart, ShieldCheck, Check, Star, ArrowRight, FileText } from 'lucide-react';
 import { Product, Currency } from '../types';
+import { formatPrice } from '../utils/currency';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -124,16 +125,32 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
               </div>
 
               {/* Price / Quote Status */}
-              <div className="flex items-center justify-between gap-2.5 mt-3 py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-200">
+              <div className="flex items-center justify-between gap-2.5 mt-3 py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-200">
                 <div>
-                  <div className="text-sm font-black text-slate-900 flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-orange-600" />
-                    <span>Price on Request</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-base sm:text-lg font-black text-slate-900">
+                      {formatPrice(product.priceNGN, currency)}
+                    </span>
+                    {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
+                      <span className="text-xs text-slate-400 line-through">
+                        {formatPrice(product.originalPriceNGN, currency)}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-[11px] text-slate-500">Official B2B Quote • Proforma Invoice</div>
+                  {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN ? (
+                    <div className="text-[10px] font-bold text-emerald-700">
+                      Save {Math.round(((product.originalPriceNGN - product.priceNGN) / product.originalPriceNGN) * 100)}% off retail
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-slate-500">Official OEM Warranty • Instant Dispatch</div>
+                  )}
                 </div>
-                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
-                  {product.inStock ? `In Stock (${product.stockCount} units)` : 'Out of Stock'}
+                <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
+                  product.inStock 
+                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200' 
+                    : 'text-slate-400 bg-slate-100 border-slate-200'
+                }`}>
+                  {product.inStock ? `In Stock (${product.stockCount})` : 'Out of Stock'}
                 </span>
               </div>
 
@@ -172,25 +189,25 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   </button>
                 </div>
 
-                {/* Request Quote button */}
+                {/* Add to Cart button */}
                 <button
                   onClick={handleAdd}
                   disabled={!product.inStock}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
                     isAdded
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-slate-950 hover:bg-orange-600 text-white'
+                      : 'bg-slate-900 hover:bg-orange-600 text-white'
                   } disabled:bg-slate-200 disabled:text-slate-400`}
                 >
                   {isAdded ? (
                     <>
                       <Check className="w-4 h-4" />
-                      <span>Quote Requested!</span>
+                      <span>Added to Cart!</span>
                     </>
                   ) : (
                     <>
-                      <FileText className="w-4 h-4 text-orange-400" />
-                      <span>Request Quote</span>
+                      <ShoppingCart className="w-4 h-4 text-orange-400" />
+                      <span>Add to Cart {quantity > 1 ? `(${formatPrice(product.priceNGN * quantity, currency)})` : ''}</span>
                     </>
                   )}
                 </button>

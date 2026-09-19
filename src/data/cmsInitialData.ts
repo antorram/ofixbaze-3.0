@@ -681,7 +681,7 @@ export const INITIAL_CMS_PAGES: CMSPage[] = [
     id: 'page-home',
     title: 'Homepage',
     slug: 'home',
-    status: 'published',
+    status: 'draft',
     author: 'Super Admin',
     createdAt: '01 Sep 2026',
     updatedAt: '07 Sep 2026',

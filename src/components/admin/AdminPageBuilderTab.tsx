@@ -62,6 +62,7 @@ import {
 import { 
   CMSPage, 
   CMSSection, 
+  CMSSectionSettings,
   CMSWidget, 
   CMSWidgetType, 
   DeviceMode, 
@@ -94,13 +95,13 @@ interface AdminPageBuilderTabProps {
 interface WidgetPaletteItem {
   type: CMSWidgetType;
   label: string;
-  category: 'content' | 'layout' | 'media' | 'ecommerce' | 'business' | 'marketing' | 'navigation' | 'advanced';
+  category: 'content' | 'layout' | 'ecommerce' | 'corporate' | 'media' | 'advanced';
   description: string;
   icon: any;
 }
 
 const WIDGET_PALETTE: WidgetPaletteItem[] = [
-  // 1. Content
+  // 1. CONTENT
   { type: 'heading', label: 'Heading', category: 'content', description: 'H1-H6 titles with badges and subtexts', icon: Type },
   { type: 'text', label: 'Text Block', category: 'content', description: 'Paragraphs, body copy, and specifications', icon: FileText },
   { type: 'rich_text', label: 'Rich Text', category: 'content', description: 'Formatted descriptive prose and articles', icon: FileText },
@@ -110,20 +111,14 @@ const WIDGET_PALETTE: WidgetPaletteItem[] = [
   { type: 'divider', label: 'Divider Line', category: 'content', description: 'Clean horizontal spacing divider', icon: SlidersHorizontal },
   { type: 'spacer', label: 'Spacer Gap', category: 'content', description: 'Custom vertical height gap', icon: Box },
 
-  // 2. Layout
+  // 2. LAYOUT
   { type: 'section', label: 'New Section', category: 'layout', description: 'Empty section with customizable background', icon: Layout },
   { type: 'container', label: 'Container Box', category: 'layout', description: 'Boxed or full-width layout wrapper', icon: Box },
   { type: 'columns', label: 'Columns Row', category: 'layout', description: 'Multi-column grid (2, 3, 4, 30/70, 70/30)', icon: Columns },
   { type: 'grid', label: 'Content Grid', category: 'layout', description: 'Responsive CSS grid container', icon: Grid },
+  { type: 'flex', label: 'Flex Container', category: 'layout', description: 'Custom flex row with alignment controls', icon: Sliders },
 
-  // 3. Media
-  { type: 'image', label: 'Single Image', category: 'media', description: 'Full width, responsive aspect ratio image', icon: ImageIcon },
-  { type: 'image_gallery', label: 'Image Gallery', category: 'media', description: 'Multi-image grid showroom showcase', icon: Grid },
-  { type: 'video', label: 'Video Player', category: 'media', description: 'Product and corporate showroom videos', icon: Video },
-  { type: 'banner_slider', label: 'Banner Slider', category: 'media', description: 'Multi-slide rotating promotional showcase', icon: Layout },
-  { type: 'brand_logos', label: 'Brand Logos Strip', category: 'media', description: 'HP, Canon, Sharp, Epson partner logos', icon: Globe },
-
-  // 4. Ecommerce
+  // 3. ECOMMERCE
   { type: 'product_grid', label: 'Product Grid', category: 'ecommerce', description: 'Dynamic catalog filtered by category or brand', icon: ShoppingBag },
   { type: 'product_carousel', label: 'Product Carousel', category: 'ecommerce', description: 'Horizontal scrollable product slider', icon: ShoppingBag },
   { type: 'featured_products', label: 'Featured Products', category: 'ecommerce', description: 'Handpicked VIP and flagship equipment', icon: Star },
@@ -132,23 +127,26 @@ const WIDGET_PALETTE: WidgetPaletteItem[] = [
   { type: 'category_grid', label: 'Category Grid', category: 'ecommerce', description: 'Direct links to major corporate collections', icon: Grid },
   { type: 'product_search', label: 'Product Search Bar', category: 'ecommerce', description: 'Live cartridge model and furniture search', icon: Search },
 
-  // 5. Business
-  { type: 'rfq_form', label: 'Interactive RFQ Form', category: 'business', description: 'Embedded form that saves to corporate RFQ inbox', icon: FileCheck },
-  { type: 'trust_badges', label: 'Trust Badges', category: 'business', description: 'OEM Authenticity, Fast Dispatch, RFQ & Support', icon: ShieldCheck },
-  { type: 'testimonials', label: 'Corporate Reviews', category: 'business', description: 'Verified feedback from Nigerian enterprise clients', icon: Star },
-  { type: 'faq', label: 'FAQ Accordion', category: 'business', description: 'Collapsible answers to corporate buyer questions', icon: HelpCircle },
+  // 4. CORPORATE
+  { type: 'rfq_form', label: 'Interactive RFQ Form', category: 'corporate', description: 'Embedded form that saves to corporate RFQ inbox', icon: FileCheck },
+  { type: 'trust_badges', label: 'Trust Badges', category: 'corporate', description: 'OEM Authenticity, Fast Dispatch, RFQ & Support', icon: ShieldCheck },
+  { type: 'testimonials', label: 'Corporate Reviews', category: 'corporate', description: 'Verified feedback from Nigerian enterprise clients', icon: Star },
+  { type: 'faq', label: 'Corporate FAQ', category: 'corporate', description: 'Collapsible answers to corporate buyer questions', icon: HelpCircle },
+  { type: 'cta_banner', label: 'Corporate RFQ Banner', category: 'corporate', description: 'Bulk tender pricing & proforma invoice prompt', icon: PhoneCall },
+  { type: 'announcement_bar', label: 'Announcement Bar', category: 'corporate', description: 'Top promo notice strip with urgency tag', icon: Sparkles },
 
-  // 6. Marketing
-  { type: 'hero_banner', label: 'Hero Banner', category: 'marketing', description: 'Headline, subtext, dual CTAs & image overlay', icon: Wand2 },
-  { type: 'cta_banner', label: 'Corporate RFQ Banner', category: 'marketing', description: 'Bulk tender pricing & proforma invoice prompt', icon: PhoneCall },
-  { type: 'announcement_bar', label: 'Announcement Bar', category: 'marketing', description: 'Top promo notice strip with urgency tag', icon: Sparkles },
+  // 5. MEDIA
+  { type: 'image', label: 'Single Image', category: 'media', description: 'Full width, responsive aspect ratio image', icon: ImageIcon },
+  { type: 'image_gallery', label: 'Image Gallery', category: 'media', description: 'Multi-image grid showroom showcase', icon: Grid },
+  { type: 'video', label: 'Video Player', category: 'media', description: 'Product and corporate showroom videos', icon: Video },
+  { type: 'banner_slider', label: 'Banner Slider', category: 'media', description: 'Multi-slide rotating promotional showcase', icon: Layout },
+  { type: 'brand_logos', label: 'Brand Logos Strip', category: 'media', description: 'HP, Canon, Sharp, Epson partner logos', icon: Globe },
+  { type: 'hero_banner', label: 'Hero Banner', category: 'media', description: 'Headline, subtext, dual CTAs & image overlay', icon: Wand2 },
 
-  // 7. Navigation
-  { type: 'divider', label: 'Breadcrumb Path', category: 'navigation', description: 'Hierarchical navigation breadcrumbs', icon: ChevronRight },
-  { type: 'button', label: 'Back to Top Anchor', category: 'navigation', description: 'Smooth scroll back to top of page', icon: ArrowUp },
-
-  // 8. Advanced
-  { type: 'html_custom', label: 'Custom HTML / Embed', category: 'advanced', description: 'Raw HTML, iframe, or custom tracking code', icon: Code2 }
+  // 6. ADVANCED
+  { type: 'html_custom', label: 'Custom HTML / Embed', category: 'advanced', description: 'Raw HTML, iframe, or custom tracking code', icon: Code2 },
+  { type: 'breadcrumb', label: 'Dynamic Breadcrumbs', category: 'advanced', description: 'Hierarchical navigation breadcrumbs', icon: ChevronRight },
+  { type: 'menu_widget', label: 'Menu Widget', category: 'advanced', description: 'Corporate navigation link list', icon: Menu }
 ];
 
 export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
@@ -181,16 +179,15 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
 
   // Left sidebar tabs & state
   const [leftTab, setLeftTab] = useState<'widgets' | 'navigator' | 'templates'>('widgets');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('all');
   const [widgetSearch, setWidgetSearch] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({
     content: true,
     layout: true,
-    media: true,
     ecommerce: true,
-    business: true,
-    marketing: true,
-    navigation: false,
-    advanced: false
+    corporate: true,
+    media: true,
+    advanced: true
   });
 
   // Right sidebar inspector tab
@@ -203,6 +200,7 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
 
   // Canvas Viewport Enhancements
   const [canvasZoom, setCanvasZoom] = useState<number>(100);
+  const [customViewportWidth, setCustomViewportWidth] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [showStructureOutline, setShowStructureOutline] = useState<boolean>(false);
 
@@ -229,6 +227,8 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState<boolean>(false);
   const [copiedWidget, setCopiedWidget] = useState<CMSWidget | null>(null);
   const [copiedStyle, setCopiedStyle] = useState<any | null>(null);
+  const [copiedSection, setCopiedSection] = useState<CMSSection | null>(null);
+  const [copiedSectionStyle, setCopiedSectionStyle] = useState<CMSSectionSettings | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Templates in localStorage
@@ -819,6 +819,54 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
     showBuilderToast('Style pasted to element');
   };
 
+  // Section Copy / Paste Style & Operations
+  const handleCopySection = (sec: CMSSection) => {
+    setCopiedSection(sec);
+    showBuilderToast(`Section "${sec.name}" copied`);
+  };
+
+  const handleCopySectionStyle = (settings: any) => {
+    setCopiedSectionStyle(settings);
+    showBuilderToast('Section style copied to clipboard');
+  };
+
+  const handlePasteSectionStyle = (secId: string) => {
+    if (!copiedSectionStyle) {
+      showBuilderToast('No section style in clipboard');
+      return;
+    }
+    const updated = sections.map(sec => {
+      if (sec.id === secId) {
+        return {
+          ...sec,
+          settings: { ...sec.settings, ...copiedSectionStyle }
+        };
+      }
+      return sec;
+    });
+    updateSectionsWithHistory(updated);
+    showBuilderToast('Section style applied');
+  };
+
+  // Move Widget Reordering
+  const handleMoveWidget = (secId: string, widgetId: string, direction: 'up' | 'down') => {
+    const updated = sections.map(sec => {
+      if (sec.id === secId) {
+        const idx = sec.widgets.findIndex(w => w.id === widgetId);
+        if (idx === -1) return sec;
+        const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+        if (newIdx < 0 || newIdx >= sec.widgets.length) return sec;
+        const reordered = [...sec.widgets];
+        const [moved] = reordered.splice(idx, 1);
+        reordered.splice(newIdx, 0, moved);
+        return { ...sec, widgets: reordered };
+      }
+      return sec;
+    });
+    updateSectionsWithHistory(updated);
+    showBuilderToast(`Element moved ${direction}`);
+  };
+
   // Update Widget Content & Settings
   const handleUpdateCurrentWidget = (updates: Partial<CMSWidget>) => {
     if (!currentSection || !currentWidget) return;
@@ -915,11 +963,21 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
   // Publish Page
   const handlePublish = () => {
     if (!activePage) return;
+    if (sections.length === 0) {
+      showBuilderToast('Cannot publish an empty page. Add at least one section.');
+      return;
+    }
+    const totalWidgets = sections.reduce((acc, s) => acc + s.widgets.length, 0);
+    if (totalWidgets === 0) {
+      showBuilderToast('Sections cannot be empty. Please add widgets before publishing.');
+      return;
+    }
+
     const newRevision: CMSPageRevision = {
       id: `rev-${Date.now()}`,
       timestamp: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
       author: 'Super Admin',
-      summary: `Published revision (${sections.length} sections)`,
+      summary: `Published revision (${sections.length} sections, ${totalWidgets} elements)`,
       sections
     };
     const updatedRevisions = [newRevision, ...revisions];
@@ -965,8 +1023,11 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
     setDropTargetSectionId(null);
   };
 
-  // Filtered widgets for Left Panel search
+  // Filtered widgets for Left Panel search & category filter
   const filteredWidgets = WIDGET_PALETTE.filter(w => {
+    if (activeCategoryFilter !== 'all' && w.category !== activeCategoryFilter) {
+      return false;
+    }
     if (!widgetSearch) return true;
     const q = widgetSearch.toLowerCase();
     return w.label.toLowerCase().includes(q) || w.description.toLowerCase().includes(q) || w.category.toLowerCase().includes(q);
@@ -1030,10 +1091,10 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
           </span>
         </div>
 
-        {/* Center: Device Viewport Switcher, Zoom & History */}
+        {/* Center: Device Viewport Switcher, Width Presets, Zoom & History */}
         <div className="flex items-center gap-1 bg-[#101418] border border-[#2c3338] p-1 rounded-xl">
           <button
-            onClick={() => setDeviceMode('desktop')}
+            onClick={() => { setDeviceMode('desktop'); setCustomViewportWidth(null); }}
             title="Desktop View (100% Full Width)"
             className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
               deviceMode === 'desktop' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -1043,7 +1104,7 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
             <span className="hidden sm:inline text-[11px]">Desktop</span>
           </button>
           <button
-            onClick={() => setDeviceMode('tablet')}
+            onClick={() => { setDeviceMode('tablet'); setCustomViewportWidth('768px'); }}
             title="Tablet View (768px)"
             className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
               deviceMode === 'tablet' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -1053,7 +1114,7 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
             <span className="hidden sm:inline text-[11px]">768px</span>
           </button>
           <button
-            onClick={() => setDeviceMode('mobile')}
+            onClick={() => { setDeviceMode('mobile'); setCustomViewportWidth('375px'); }}
             title="Mobile View (375px)"
             className={`px-2.5 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold ${
               deviceMode === 'mobile' ? 'bg-orange-600 text-white shadow' : 'text-slate-400 hover:text-white'
@@ -1062,6 +1123,49 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
             <Smartphone className="w-4 h-4" />
             <span className="hidden sm:inline text-[11px]">375px</span>
           </button>
+
+          {/* Viewport Width Preset Selector */}
+          <select
+            value={customViewportWidth || (deviceMode === 'desktop' ? '100%' : deviceMode === 'tablet' ? '768px' : '375px')}
+            onChange={(e) => {
+              const val = e.target.value;
+              setCustomViewportWidth(val === '100%' ? null : val);
+              if (val.includes('px')) {
+                const pxVal = parseInt(val, 10);
+                if (pxVal <= 480 && deviceMode !== 'mobile') setDeviceMode('mobile');
+                else if (pxVal > 480 && pxVal <= 1024 && deviceMode !== 'tablet') setDeviceMode('tablet');
+                else if (pxVal > 1024 && deviceMode !== 'desktop') setDeviceMode('desktop');
+              } else if (val === '100%') {
+                setDeviceMode('desktop');
+              }
+            }}
+            title="Responsive Viewport Width"
+            className="bg-[#191e23] border border-[#2c3338] text-slate-300 text-[11px] font-semibold px-2 py-1 rounded-lg cursor-pointer focus:outline-none focus:border-orange-500"
+          >
+            {deviceMode === 'desktop' && (
+              <>
+                <option value="100%">Desktop: 100% (Fluid)</option>
+                <option value="1920px">Desktop: 1920px (Full HD)</option>
+                <option value="1440px">Desktop: 1440px (Wide)</option>
+                <option value="1280px">Desktop: 1280px (Standard)</option>
+              </>
+            )}
+            {deviceMode === 'tablet' && (
+              <>
+                <option value="1024px">Tablet: 1024px (iPad Pro)</option>
+                <option value="768px">Tablet: 768px (iPad Standard)</option>
+              </>
+            )}
+            {deviceMode === 'mobile' && (
+              <>
+                <option value="414px">Mobile: 414px (iPhone Plus/Max)</option>
+                <option value="390px">Mobile: 390px (iPhone 14/15)</option>
+                <option value="375px">Mobile: 375px (iPhone SE / Standard)</option>
+                <option value="360px">Mobile: 360px (Android Common)</option>
+                <option value="320px">Mobile: 320px (Small)</option>
+              </>
+            )}
+          </select>
 
           <div className="h-4 w-px bg-slate-800 mx-1" />
 
@@ -1220,8 +1324,8 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
             {/* TAB 1: SEARCHABLE WIDGET PALETTE */}
             {leftTab === 'widgets' && (
               <div className="flex-1 flex flex-col overflow-hidden">
-                {/* Search Box */}
-                <div className="p-3 border-b border-[#2c3338] bg-[#13171a]">
+                {/* Search Box & Category Filter Chips */}
+                <div className="p-3 border-b border-[#2c3338] bg-[#13171a] space-y-2.5">
                   <div className="relative">
                     <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
                     <input
@@ -1240,15 +1344,32 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                       </button>
                     )}
                   </div>
+
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar">
+                    {(['all', 'content', 'layout', 'ecommerce', 'corporate', 'media', 'advanced'] as const).map(catKey => (
+                      <button
+                        key={catKey}
+                        onClick={() => setActiveCategoryFilter(catKey)}
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold capitalize transition whitespace-nowrap cursor-pointer ${
+                          activeCategoryFilter === catKey
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-[#191e23] text-slate-400 hover:text-slate-200 border border-[#2c3338]'
+                        }`}
+                      >
+                        {catKey}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Categories & Widget Cards */}
                 <div className="flex-1 overflow-y-auto p-3 space-y-4">
-                  {(['content', 'layout', 'media', 'ecommerce', 'business', 'marketing', 'navigation', 'advanced'] as const).map(catKey => {
+                  {(['content', 'layout', 'ecommerce', 'corporate', 'media', 'advanced'] as const).map(catKey => {
                     const catWidgets = filteredWidgets.filter(w => w.category === catKey);
                     if (catWidgets.length === 0) return null;
 
-                    const isExpanded = widgetSearch ? true : expandedCategories[catKey] ?? true;
+                    const isExpanded = widgetSearch || activeCategoryFilter !== 'all' ? true : expandedCategories[catKey] ?? true;
 
                     return (
                       <div key={catKey} className="space-y-2">
@@ -1455,8 +1576,11 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
           )}
 
           <div 
-            className={`transition-all duration-300 bg-white text-slate-900 min-h-[85vh] ${getDeviceWidthClass()} ${showStructureOutline ? 'ring-2 ring-blue-500/50' : ''}`}
-            style={canvasZoom !== 100 ? { transform: `scale(${canvasZoom / 100})`, transformOrigin: 'top center' } : undefined}
+            className={`transition-all duration-300 bg-white text-slate-900 min-h-[85vh] ${customViewportWidth ? 'shadow-2xl rounded-xl border-4 border-slate-700 my-4' : getDeviceWidthClass()} ${showStructureOutline ? 'ring-2 ring-blue-500/50' : ''}`}
+            style={{
+              ...(customViewportWidth ? { width: customViewportWidth, maxWidth: '100%' } : {}),
+              ...(canvasZoom !== 100 ? { transform: `scale(${canvasZoom / 100})`, transformOrigin: 'top center' } : {})
+            }}
           >
             {sections.length === 0 ? (
               <div className="p-16 text-center space-y-4">
@@ -1525,12 +1649,21 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                       }}
                       onDuplicateWidget={handleDuplicateWidget}
                       onDeleteWidget={handleDeleteWidget}
+                      onMoveWidget={handleMoveWidget}
+                      onCopyWidget={handleCopyWidget}
+                      onCopyWidgetStyle={handleCopyStyle}
+                      onPasteWidgetStyle={handlePasteStyle}
                       onMoveSection={(dir) => handleMoveSection(secIdx, dir)}
                       onDuplicateSection={() => handleDuplicateSection(section)}
                       onDeleteSection={() => handleDeleteSection(section.id)}
+                      onCopySection={() => handleCopySection(section)}
+                      onCopySectionStyle={() => handleCopySectionStyle(section.settings)}
+                      onPasteSectionStyle={() => handlePasteSectionStyle(section.id)}
                       onSaveSectionAsTemplate={() => handleSaveSectionAsTemplate(section)}
                       canMoveUp={secIdx > 0}
                       canMoveDown={secIdx < sections.length - 1}
+                      hasCopiedWidgetStyle={!!copiedStyle}
+                      hasCopiedSectionStyle={!!copiedSectionStyle}
                       deviceMode={deviceMode}
                     />
 
@@ -2872,8 +3005,39 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
               ) : currentSection ? (
                 /* SECTION SETTINGS (When Section is clicked) */
                 <div className="space-y-4">
-                  <div className="p-2.5 bg-[#13171a] rounded-xl border border-[#2c3338]">
-                    <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wider block">Active Section</span>
+                  {/* Active Section Identifier & Quick Action Buttons */}
+                  <div className="p-2.5 bg-[#13171a] rounded-xl border border-[#2c3338] space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-bold text-orange-400 uppercase tracking-wider">Target Container</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleCopySection(currentSection)}
+                          title="Copy Section"
+                          className="p-1 rounded text-slate-400 hover:text-white hover:bg-[#252c32] cursor-pointer"
+                        >
+                          <Copy className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopySectionStyle(currentSection.settings)}
+                          title="Copy Section Style"
+                          className="p-1 rounded text-slate-400 hover:text-white hover:bg-[#252c32] cursor-pointer"
+                        >
+                          <Palette className="w-3 h-3" />
+                        </button>
+                        {copiedSectionStyle && (
+                          <button
+                            type="button"
+                            onClick={() => handlePasteSectionStyle(currentSection.id)}
+                            title="Paste Section Style"
+                            className="p-1 rounded text-orange-400 hover:text-orange-300 hover:bg-[#252c32] cursor-pointer"
+                          >
+                            <Sparkles className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <input
                       type="text"
                       value={currentSection.name}
@@ -2882,315 +3046,679 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                     />
                   </div>
 
-                  {/* Section Column Presets */}
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">Column Structure</label>
-                    <select
-                      value={currentSection.settings.columnsPreset || '1-col'}
-                      onChange={(e) => handleUpdateCurrentSection({
-                        settings: { ...currentSection.settings, columnsPreset: e.target.value as any }
-                      })}
-                      className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
-                    >
-                      <option value="1-col">1 Column (100% - Full Width)</option>
-                      <option value="2-col-equal">2 Columns Equal (50% / 50%)</option>
-                      <option value="3-col-equal">3 Columns Equal (33% / 33% / 33%)</option>
-                      <option value="4-col-equal">4 Columns Equal (25% each)</option>
-                      <option value="30-70">Sidebar Left (30% / 70%)</option>
-                      <option value="70-30">Sidebar Right (70% / 30%)</option>
-                      <option value="40-60">Asymmetric (40% / 60%)</option>
-                      <option value="60-40">Asymmetric (60% / 40%)</option>
-                      <option value="25-75">Narrow Sidebar Left (25% / 75%)</option>
-                      <option value="75-25">Narrow Sidebar Right (75% / 25%)</option>
-                      <option value="33-67">1/3 + 2/3 Split</option>
-                      <option value="67-33">2/3 + 1/3 Split</option>
-                    </select>
-                  </div>
-
-                  {/* Section Layout & Container Width */}
-                  <div className="space-y-2.5 pt-2 border-t border-[#2c3338]">
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1 text-xs">Section Outer Background</label>
-                      <div className="flex bg-[#13171a] border border-[#2c3338] rounded-lg p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, layout: 'boxed' }
-                          })}
-                          className={`flex-1 py-1 text-center font-semibold rounded text-xs transition ${
-                            (currentSection.settings.layout || 'boxed') === 'boxed' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          Boxed
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, layout: 'full-width' }
-                          })}
-                          className={`flex-1 py-1 text-center font-semibold rounded text-xs transition ${
-                            currentSection.settings.layout === 'full-width' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          Full Width
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1 text-xs">Inner Content Width</label>
-                      <div className="flex bg-[#13171a] border border-[#2c3338] rounded-lg p-0.5 mb-1.5">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, contentWidthMode: 'boxed' }
-                          })}
-                          className={`flex-1 py-1 text-center font-semibold rounded text-xs transition ${
-                            (currentSection.settings.contentWidthMode || 'boxed') === 'boxed' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          Boxed Container
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, contentWidthMode: 'full-width' }
-                          })}
-                          className={`flex-1 py-1 text-center font-semibold rounded text-xs transition ${
-                            currentSection.settings.contentWidthMode === 'full-width' ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          Full Bleed (100%)
-                        </button>
+                  {/* TAB 1: CONTENT / LAYOUT & FLEX */}
+                  {inspectorTab === 'content' && (
+                    <div className="space-y-4">
+                      {/* Container Layout Mode */}
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Container Layout</label>
+                        <div className="grid grid-cols-2 gap-1 bg-[#13171a] border border-[#2c3338] rounded-lg p-0.5">
+                          {(['boxed', 'full-width', 'full-bleed', 'custom'] as const).map(mode => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, layout: mode }
+                              })}
+                              className={`py-1 text-center font-semibold rounded text-xs capitalize transition ${
+                                (currentSection.settings.layout || 'boxed') === mode ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              {mode.replace('-', ' ')}
+                            </button>
+                          ))}
+                        </div>
                       </div>
 
-                      {currentSection.settings.contentWidthMode !== 'full-width' && (
-                        <div>
-                          <span className="text-[10px] text-slate-500 block mb-1">Max Container Width</span>
-                          <select
-                            value={currentSection.settings.contentMaxWidth || '1280px'}
-                            onChange={(e) => handleUpdateCurrentSection({
-                              settings: { ...currentSection.settings, contentMaxWidth: e.target.value }
-                            })}
-                            className="w-full px-2.5 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
-                          >
-                            <option value="960px">Compact (960px)</option>
-                            <option value="1140px">Standard (1140px)</option>
-                            <option value="1280px">Default Modern (1280px / 7xl)</option>
-                            <option value="1440px">Wide Modern (1440px)</option>
-                            <option value="1600px">Ultra-Wide (1600px)</option>
-                            <option value="100%">100% Fluid</option>
-                          </select>
+                      {/* Max Container Width */}
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Max Container Width</label>
+                        <select
+                          value={currentSection.settings.contentMaxWidth || '1280px'}
+                          onChange={(e) => handleUpdateCurrentSection({
+                            settings: { ...currentSection.settings, contentMaxWidth: e.target.value }
+                          })}
+                          className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                        >
+                          <option value="960px">Compact (960px)</option>
+                          <option value="1140px">Standard (1140px)</option>
+                          <option value="1280px">Default Modern (1280px / 7xl)</option>
+                          <option value="1440px">Wide Modern (1440px)</option>
+                          <option value="1600px">Ultra-Wide (1600px)</option>
+                          <option value="100%">100% Fluid</option>
+                        </select>
+                      </div>
+
+                      {/* Custom Width / Min Height */}
+                      {currentSection.settings.layout === 'custom' && (
+                        <div className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg space-y-2">
+                          <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider block">Custom Sizing</span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="text-[10px] text-slate-500 block mb-0.5">Width</span>
+                              <input
+                                type="text"
+                                value={currentSection.settings.customWidth || ''}
+                                onChange={(e) => handleUpdateCurrentSection({
+                                  settings: { ...currentSection.settings, customWidth: e.target.value }
+                                })}
+                                placeholder="e.g. 100%, 1200px"
+                                className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs font-mono"
+                              />
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-500 block mb-0.5">Min Height</span>
+                              <input
+                                type="text"
+                                value={currentSection.settings.customMinHeight || ''}
+                                onChange={(e) => handleUpdateCurrentSection({
+                                  settings: { ...currentSection.settings, customMinHeight: e.target.value }
+                                })}
+                                placeholder="e.g. 400px, 80vh"
+                                className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs font-mono"
+                              />
+                            </div>
+                          </div>
                         </div>
                       )}
-                    </div>
-                  </div>
 
-                  {/* Responsive Padding */}
-                  <div className="space-y-2 pt-2 border-t border-[#2c3338]">
-                    <div className="flex items-center justify-between">
-                      <label className="text-slate-400 font-semibold text-xs">Section Padding (px)</label>
-                      <span className="text-[10px] text-orange-400 uppercase font-mono font-bold">
-                        {deviceMode}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-slate-500 block mb-0.5">Top Padding</span>
-                        <input
-                          type="number"
-                          value={
-                            deviceMode === 'mobile'
-                              ? (currentSection.settings.paddingTopMobile ?? currentSection.settings.paddingTop ?? 24)
-                              : deviceMode === 'tablet'
-                              ? (currentSection.settings.paddingTopTablet ?? currentSection.settings.paddingTop ?? 36)
-                              : (currentSection.settings.paddingTop ?? 48)
-                          }
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            if (deviceMode === 'mobile') {
-                              handleUpdateCurrentSection({ settings: { ...currentSection.settings, paddingTopMobile: val } });
-                            } else if (deviceMode === 'tablet') {
-                              handleUpdateCurrentSection({ settings: { ...currentSection.settings, paddingTopTablet: val } });
-                            } else {
-                              handleUpdateCurrentSection({ settings: { ...currentSection.settings, paddingTop: val } });
-                            }
-                          }}
-                          className="w-full px-2.5 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs text-center"
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-slate-500 block mb-0.5">Bottom Padding</span>
-                        <input
-                          type="number"
-                          value={
-                            deviceMode === 'mobile'
-                              ? (currentSection.settings.paddingBottomMobile ?? currentSection.settings.paddingBottom ?? 24)
-                              : deviceMode === 'tablet'
-                              ? (currentSection.settings.paddingBottomTablet ?? currentSection.settings.paddingBottom ?? 36)
-                              : (currentSection.settings.paddingBottom ?? 48)
-                          }
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            if (deviceMode === 'mobile') {
-                              handleUpdateCurrentSection({ settings: { ...currentSection.settings, paddingBottomMobile: val } });
-                            } else if (deviceMode === 'tablet') {
-                              handleUpdateCurrentSection({ settings: { ...currentSection.settings, paddingBottomTablet: val } });
-                            } else {
-                              handleUpdateCurrentSection({ settings: { ...currentSection.settings, paddingBottom: val } });
-                            }
-                          }}
-                          className="w-full px-2.5 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs text-center"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Background Color & Image */}
-                  <div className="space-y-2.5 pt-2 border-t border-[#2c3338]">
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1 text-xs">Background Color</label>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="color"
-                          value={currentSection.settings.bgColor || '#ffffff'}
+                      {/* Column Preset Structure */}
+                      <div className="pt-2 border-t border-[#2c3338]">
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Column Structure</label>
+                        <select
+                          value={currentSection.settings.columnsPreset || '1-col'}
                           onChange={(e) => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, bgColor: e.target.value }
+                            settings: { ...currentSection.settings, columnsPreset: e.target.value as any }
                           })}
-                          className="w-8 h-8 rounded border border-slate-700 bg-transparent cursor-pointer"
-                        />
-                        <input
-                          type="text"
-                          value={currentSection.settings.bgColor || ''}
-                          onChange={(e) => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, bgColor: e.target.value }
-                          })}
-                          placeholder="e.g. #ffffff or transparent"
-                          className="flex-1 px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-[11px]"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-400 font-semibold mb-1 text-xs">Background Image URL</label>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={currentSection.settings.bgImage || ''}
-                          onChange={(e) => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, bgImage: e.target.value }
-                          })}
-                          placeholder="https://images.unsplash.com/..."
-                          className="flex-1 px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-[11px]"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMediaTargetField('section-bg');
-                            setIsMediaPickerOpen(true);
-                          }}
-                          className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold flex items-center gap-1 cursor-pointer text-xs"
+                          className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
                         >
-                          <ImageIcon className="w-3.5 h-3.5" />
-                          <span>Media</span>
-                        </button>
+                          <option value="1-col">1 Column (100% - Full Width)</option>
+                          <option value="2-col-equal">2 Columns Equal (50% / 50%)</option>
+                          <option value="3-col-equal">3 Columns Equal (33% / 33% / 33%)</option>
+                          <option value="4-col-equal">4 Columns Equal (25% each)</option>
+                          <option value="30-70">Sidebar Left (30% / 70%)</option>
+                          <option value="70-30">Sidebar Right (70% / 30%)</option>
+                          <option value="40-60">Asymmetric (40% / 60%)</option>
+                          <option value="60-40">Asymmetric (60% / 40%)</option>
+                          <option value="25-75">Narrow Sidebar Left (25% / 75%)</option>
+                          <option value="75-25">Narrow Sidebar Right (75% / 25%)</option>
+                          <option value="33-67">1/3 + 2/3 Split</option>
+                          <option value="67-33">2/3 + 1/3 Split</option>
+                        </select>
                       </div>
-                    </div>
 
-                    {currentSection.settings.bgImage && (
-                      <div className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg space-y-2">
+                      {/* Flex Controls */}
+                      <div className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg space-y-2.5 pt-2">
+                        <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider block">Flexbox Alignment</span>
+                        
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <span className="text-[10px] text-slate-500 block mb-0.5">Size</span>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Direction</span>
                             <select
-                              value={currentSection.settings.bgSize || 'cover'}
+                              value={currentSection.settings.flexDirection || 'row'}
                               onChange={(e) => handleUpdateCurrentSection({
-                                settings: { ...currentSection.settings, bgSize: e.target.value as any }
+                                settings: { ...currentSection.settings, flexDirection: e.target.value as any }
                               })}
                               className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs"
                             >
-                              <option value="cover">Cover</option>
-                              <option value="contain">Contain</option>
-                              <option value="auto">Auto</option>
+                              <option value="row">Row (Horizontal)</option>
+                              <option value="column">Column (Vertical)</option>
                             </select>
                           </div>
                           <div>
-                            <span className="text-[10px] text-slate-500 block mb-0.5">Position</span>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Wrap</span>
                             <select
-                              value={currentSection.settings.bgPosition || 'center'}
+                              value={currentSection.settings.flexWrap || 'wrap'}
                               onChange={(e) => handleUpdateCurrentSection({
-                                settings: { ...currentSection.settings, bgPosition: e.target.value }
+                                settings: { ...currentSection.settings, flexWrap: e.target.value as any }
                               })}
                               className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs"
                             >
-                              <option value="center">Center</option>
-                              <option value="top">Top</option>
-                              <option value="bottom">Bottom</option>
+                              <option value="wrap">Wrap</option>
+                              <option value="nowrap">No Wrap</option>
                             </select>
                           </div>
                         </div>
 
-                        {/* Background Overlay */}
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] text-slate-400">Dark Overlay Opacity</span>
-                            <span className="text-[10px] font-mono text-orange-400">
-                              {Math.round((currentSection.settings.bgOverlayOpacity ?? 0) * 100)}%
-                            </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Justify Content</span>
+                            <select
+                              value={currentSection.settings.justifyContent || 'flex-start'}
+                              onChange={(e) => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, justifyContent: e.target.value as any }
+                              })}
+                              className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs"
+                            >
+                              <option value="flex-start">Start</option>
+                              <option value="center">Center</option>
+                              <option value="flex-end">End</option>
+                              <option value="space-between">Space Between</option>
+                              <option value="space-around">Space Around</option>
+                              <option value="space-evenly">Space Evenly</option>
+                            </select>
                           </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Align Items</span>
+                            <select
+                              value={currentSection.settings.alignItems || 'stretch'}
+                              onChange={(e) => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, alignItems: e.target.value as any }
+                              })}
+                              className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs"
+                            >
+                              <option value="stretch">Stretch</option>
+                              <option value="flex-start">Start</option>
+                              <option value="center">Center</option>
+                              <option value="flex-end">End</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Column Gap (px)</span>
+                            <input
+                              type="number"
+                              value={currentSection.settings.columnGap ?? 16}
+                              onChange={(e) => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, columnGap: Number(e.target.value) }
+                              })}
+                              className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs text-center"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Row Gap (px)</span>
+                            <input
+                              type="number"
+                              value={currentSection.settings.rowGap ?? 16}
+                              onChange={(e) => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, rowGap: Number(e.target.value) }
+                              })}
+                              className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs text-center"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 2: STYLE (Background, Borders, Shadows, Opacity) */}
+                  {inspectorTab === 'style' && (
+                    <div className="space-y-4">
+                      {/* Background Color */}
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Background Color</label>
+                        <div className="flex items-center gap-2">
                           <input
-                            type="range"
-                            min={0}
-                            max={0.9}
-                            step={0.05}
-                            value={currentSection.settings.bgOverlayOpacity ?? 0}
+                            type="color"
+                            value={currentSection.settings.bgColor || '#ffffff'}
                             onChange={(e) => handleUpdateCurrentSection({
-                              settings: { ...currentSection.settings, bgOverlayOpacity: parseFloat(e.target.value) }
+                              settings: { ...currentSection.settings, bgColor: e.target.value }
                             })}
-                            className="w-full accent-orange-600 cursor-pointer"
+                            className="w-8 h-8 rounded border border-slate-700 bg-transparent cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={currentSection.settings.bgColor || ''}
+                            onChange={(e) => handleUpdateCurrentSection({
+                              settings: { ...currentSection.settings, bgColor: e.target.value }
+                            })}
+                            placeholder="e.g. #ffffff, transparent"
+                            className="flex-1 px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-xs"
                           />
                         </div>
                       </div>
-                    )}
-                  </div>
 
-                  {/* Border & Shadow */}
-                  <div className="space-y-2 pt-2 border-t border-[#2c3338]">
-                    <label className="block text-slate-400 font-semibold text-xs">Section Border & Elevation</label>
-                    <div className="grid grid-cols-2 gap-2">
+                      {/* Background Gradient */}
                       <div>
-                        <span className="text-[10px] text-slate-500 block mb-0.5">Border Style</span>
-                        <select
-                          value={currentSection.settings.borderStyle || 'none'}
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Background Gradient (CSS)</label>
+                        <input
+                          type="text"
+                          value={currentSection.settings.bgGradient || ''}
                           onChange={(e) => handleUpdateCurrentSection({
-                            settings: { ...currentSection.settings, borderStyle: e.target.value as any }
+                            settings: { ...currentSection.settings, bgGradient: e.target.value }
                           })}
-                          className="w-full px-2 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
-                        >
-                          <option value="none">None</option>
-                          <option value="solid">Solid</option>
-                          <option value="dashed">Dashed</option>
-                        </select>
+                          placeholder="linear-gradient(135deg, #f97316 0%, #ea580c 100%)"
+                          className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-xs"
+                        />
                       </div>
+
+                      {/* Background Image */}
                       <div>
-                        <span className="text-[10px] text-slate-500 block mb-0.5">Shadow Preset</span>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Background Image URL</label>
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="text"
+                            value={currentSection.settings.bgImage || ''}
+                            onChange={(e) => handleUpdateCurrentSection({
+                              settings: { ...currentSection.settings, bgImage: e.target.value }
+                            })}
+                            placeholder="https://images.unsplash.com/..."
+                            className="flex-1 px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-xs"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMediaTargetField('section-bg');
+                              setIsMediaPickerOpen(true);
+                            }}
+                            className="px-2.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold flex items-center gap-1 cursor-pointer text-xs"
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span>Media</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {currentSection.settings.bgImage && (
+                        <div className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="text-[10px] text-slate-500 block mb-0.5">Size</span>
+                              <select
+                                value={currentSection.settings.bgSize || 'cover'}
+                                onChange={(e) => handleUpdateCurrentSection({
+                                  settings: { ...currentSection.settings, bgSize: e.target.value as any }
+                                })}
+                                className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs"
+                              >
+                                <option value="cover">Cover</option>
+                                <option value="contain">Contain</option>
+                                <option value="auto">Auto</option>
+                              </select>
+                            </div>
+                            <div>
+                              <span className="text-[10px] text-slate-500 block mb-0.5">Position</span>
+                              <select
+                                value={currentSection.settings.bgPosition || 'center'}
+                                onChange={(e) => handleUpdateCurrentSection({
+                                  settings: { ...currentSection.settings, bgPosition: e.target.value }
+                                })}
+                                className="w-full px-2 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs"
+                              >
+                                <option value="center">Center</option>
+                                <option value="top">Top</option>
+                                <option value="bottom">Bottom</option>
+                                <option value="left">Left</option>
+                                <option value="right">Right</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] text-slate-400">Dark Overlay Opacity</span>
+                              <span className="text-[10px] font-mono text-orange-400">
+                                {Math.round((currentSection.settings.bgOverlayOpacity ?? 0) * 100)}%
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={0.9}
+                              step={0.05}
+                              value={currentSection.settings.bgOverlayOpacity ?? 0}
+                              onChange={(e) => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, bgOverlayOpacity: parseFloat(e.target.value) }
+                              })}
+                              className="w-full accent-orange-600 cursor-pointer"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Border Controls */}
+                      <div className="pt-2 border-t border-[#2c3338] space-y-2">
+                        <label className="block text-slate-400 font-semibold text-xs">Section Border</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Style</span>
+                            <select
+                              value={currentSection.settings.borderStyle || 'none'}
+                              onChange={(e) => handleUpdateCurrentSection({
+                                settings: { ...currentSection.settings, borderStyle: e.target.value as any }
+                              })}
+                              className="w-full px-2 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
+                            >
+                              <option value="none">None</option>
+                              <option value="solid">Solid</option>
+                              <option value="dashed">Dashed</option>
+                              <option value="dotted">Dotted</option>
+                            </select>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-slate-500 block mb-0.5">Color</span>
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                type="color"
+                                value={currentSection.settings.borderColor || '#e2e8f0'}
+                                onChange={(e) => handleUpdateCurrentSection({
+                                  settings: { ...currentSection.settings, borderColor: e.target.value }
+                                })}
+                                className="w-6 h-6 rounded border border-slate-700 bg-transparent cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={currentSection.settings.borderColor || ''}
+                                onChange={(e) => handleUpdateCurrentSection({
+                                  settings: { ...currentSection.settings, borderColor: e.target.value }
+                                })}
+                                placeholder="#e2e8f0"
+                                className="flex-1 px-1.5 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white font-mono text-[10px]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Border Radius */}
+                      <div className="pt-2 border-t border-[#2c3338] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-slate-400 font-semibold text-xs">Border Radius (px)</label>
+                          <button
+                            type="button"
+                            onClick={() => setIsBorderRadiusLinked(!isBorderRadiusLinked)}
+                            className={`p-1 rounded cursor-pointer ${isBorderRadiusLinked ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                          >
+                            {isBorderRadiusLinked ? <LinkIcon className="w-3 h-3" /> : <Unlink className="w-3 h-3" />}
+                          </button>
+                        </div>
+                        {isBorderRadiusLinked ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="range"
+                              min={0}
+                              max={48}
+                              value={currentSection.settings.borderRadius ?? 0}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                handleUpdateCurrentSection({
+                                  settings: {
+                                    ...currentSection.settings,
+                                    borderRadius: val,
+                                    borderRadiusTopLeft: val,
+                                    borderRadiusTopRight: val,
+                                    borderRadiusBottomRight: val,
+                                    borderRadiusBottomLeft: val
+                                  }
+                                });
+                              }}
+                              className="flex-1 accent-orange-600 cursor-pointer"
+                            />
+                            <span className="font-mono text-xs text-orange-400 w-8 text-right">
+                              {currentSection.settings.borderRadius ?? 0}px
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-4 gap-1.5">
+                            {(['TopLeft', 'TopRight', 'BottomRight', 'BottomLeft'] as const).map(corner => (
+                              <div key={corner} className="text-center">
+                                <span className="text-[9px] text-slate-500 block mb-0.5">{corner.slice(0, 2)}</span>
+                                <input
+                                  type="number"
+                                  value={(currentSection.settings as any)[`borderRadius${corner}`] ?? 0}
+                                  onChange={(e) => handleUpdateCurrentSection({
+                                    settings: { ...currentSection.settings, [`borderRadius${corner}`]: Number(e.target.value) }
+                                  })}
+                                  className="w-full px-1 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs text-center font-mono"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Box Shadow */}
+                      <div className="pt-2 border-t border-[#2c3338] space-y-2">
+                        <label className="block text-slate-400 font-semibold text-xs">Elevation & Shadow</label>
                         <select
                           value={currentSection.settings.shadowPreset || 'none'}
                           onChange={(e) => handleUpdateCurrentSection({
                             settings: { ...currentSection.settings, shadowPreset: e.target.value as any }
                           })}
-                          className="w-full px-2 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
+                          className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
                         >
                           <option value="none">None</option>
                           <option value="sm">Soft (sm)</option>
                           <option value="md">Medium (md)</option>
                           <option value="lg">Elevated (lg)</option>
                           <option value="xl">Floating (xl)</option>
+                          <option value="2xl">Dramatic (2xl)</option>
+                          <option value="custom">Custom Shadow Parameters</option>
                         </select>
                       </div>
+
+                      {/* Section Opacity */}
+                      <div className="pt-2 border-t border-[#2c3338] space-y-1">
+                        <div className="flex items-center justify-between">
+                          <label className="text-slate-400 font-semibold text-xs">Section Opacity</label>
+                          <span className="text-xs font-mono text-orange-400">
+                            {Math.round((currentSection.settings.opacity ?? 1) * 100)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0.1}
+                          max={1}
+                          step={0.05}
+                          value={currentSection.settings.opacity ?? 1}
+                          onChange={(e) => handleUpdateCurrentSection({
+                            settings: { ...currentSection.settings, opacity: parseFloat(e.target.value) }
+                          })}
+                          className="w-full accent-orange-600 cursor-pointer"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {/* TAB 3: SPACING (Responsive Padding & Margin) */}
+                  {inspectorTab === 'spacing' && (
+                    <div className="space-y-4">
+                      {/* Responsive Padding */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <label className="text-slate-400 font-semibold text-xs">Padding (px)</label>
+                            <span className="text-[10px] text-orange-400 uppercase font-mono font-bold">
+                              ({deviceMode})
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setIsPaddingLinked(!isPaddingLinked)}
+                            className={`p-1 rounded cursor-pointer ${isPaddingLinked ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                          >
+                            {isPaddingLinked ? <LinkIcon className="w-3 h-3" /> : <Unlink className="w-3 h-3" />}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {(['Top', 'Right', 'Bottom', 'Left'] as const).map(side => {
+                            const sideKey = deviceMode === 'mobile'
+                              ? `padding${side}Mobile`
+                              : deviceMode === 'tablet'
+                              ? `padding${side}Tablet`
+                              : `padding${side}`;
+                            const val = (currentSection.settings as any)[sideKey] ?? (side === 'Top' || side === 'Bottom' ? 48 : 24);
+
+                            return (
+                              <div key={side} className="text-center">
+                                <span className="text-[9px] text-slate-500 block mb-0.5">{side}</span>
+                                <input
+                                  type="number"
+                                  value={val}
+                                  onChange={(e) => {
+                                    const numVal = Number(e.target.value);
+                                    if (isPaddingLinked) {
+                                      const updates: any = {};
+                                      ['Top', 'Right', 'Bottom', 'Left'].forEach(s => {
+                                        const k = deviceMode === 'mobile' ? `padding${s}Mobile` : deviceMode === 'tablet' ? `padding${s}Tablet` : `padding${s}`;
+                                        updates[k] = numVal;
+                                      });
+                                      handleUpdateCurrentSection({ settings: { ...currentSection.settings, ...updates } });
+                                    } else {
+                                      handleUpdateCurrentSection({ settings: { ...currentSection.settings, [sideKey]: numVal } });
+                                    }
+                                  }}
+                                  className="w-full px-1 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs text-center font-mono"
+                                />
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Margin */}
+                      <div className="pt-2 border-t border-[#2c3338] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-slate-400 font-semibold text-xs">Margin (px)</label>
+                          <button
+                            type="button"
+                            onClick={() => setIsMarginLinked(!isMarginLinked)}
+                            className={`p-1 rounded cursor-pointer ${isMarginLinked ? 'bg-orange-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                          >
+                            {isMarginLinked ? <LinkIcon className="w-3 h-3" /> : <Unlink className="w-3 h-3" />}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {(['Top', 'Right', 'Bottom', 'Left'] as const).map(side => (
+                            <div key={side} className="text-center">
+                              <span className="text-[9px] text-slate-500 block mb-0.5">{side}</span>
+                              <input
+                                type="number"
+                                value={(currentSection.settings as any)[`margin${side}`] ?? 0}
+                                onChange={(e) => {
+                                  const numVal = Number(e.target.value);
+                                  if (isMarginLinked) {
+                                    handleUpdateCurrentSection({
+                                      settings: {
+                                        ...currentSection.settings,
+                                        marginTop: numVal,
+                                        marginRight: numVal,
+                                        marginBottom: numVal,
+                                        marginLeft: numVal
+                                      }
+                                    });
+                                  } else {
+                                    handleUpdateCurrentSection({
+                                      settings: { ...currentSection.settings, [`margin${side}`]: numVal }
+                                    });
+                                  }
+                                }}
+                                className="w-full px-1 py-1 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs text-center font-mono"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 4: DEVICE (Responsive Visibility) */}
+                  {inspectorTab === 'device' && (
+                    <div className="space-y-3">
+                      <p className="text-[11px] text-slate-400 leading-snug">
+                        Toggle container visibility across target screen viewports:
+                      </p>
+                      <div className="space-y-2">
+                        <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#13171a] border border-[#2c3338] cursor-pointer">
+                          <span className="font-semibold text-slate-300 text-xs">Hide on Desktop</span>
+                          <input
+                            type="checkbox"
+                            checked={!!currentSection.settings.hideDesktop}
+                            onChange={(e) => handleUpdateCurrentSection({
+                              settings: { ...currentSection.settings, hideDesktop: e.target.checked }
+                            })}
+                            className="w-4 h-4 accent-orange-600 rounded"
+                          />
+                        </label>
+                        <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#13171a] border border-[#2c3338] cursor-pointer">
+                          <span className="font-semibold text-slate-300 text-xs">Hide on Tablet</span>
+                          <input
+                            type="checkbox"
+                            checked={!!currentSection.settings.hideTablet}
+                            onChange={(e) => handleUpdateCurrentSection({
+                              settings: { ...currentSection.settings, hideTablet: e.target.checked }
+                            })}
+                            className="w-4 h-4 accent-orange-600 rounded"
+                          />
+                        </label>
+                        <label className="flex items-center justify-between p-2.5 rounded-lg bg-[#13171a] border border-[#2c3338] cursor-pointer">
+                          <span className="font-semibold text-slate-300 text-xs">Hide on Mobile</span>
+                          <input
+                            type="checkbox"
+                            checked={!!currentSection.settings.hideMobile}
+                            onChange={(e) => handleUpdateCurrentSection({
+                              settings: { ...currentSection.settings, hideMobile: e.target.checked }
+                            })}
+                            className="w-4 h-4 accent-orange-600 rounded"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* TAB 5: ADVANCED (Custom CSS, ID, Animation) */}
+                  {inspectorTab === 'advanced' && (
+                    <div className="space-y-3.5">
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">CSS ID (Anchor Link)</label>
+                        <input
+                          type="text"
+                          value={currentSection.settings.elementId || ''}
+                          onChange={(e) => handleUpdateCurrentSection({
+                            settings: { ...currentSection.settings, elementId: e.target.value }
+                          })}
+                          placeholder="e.g. products, contact-section"
+                          className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">CSS Classes (Tailwind)</label>
+                        <input
+                          type="text"
+                          value={currentSection.settings.cssClasses || ''}
+                          onChange={(e) => handleUpdateCurrentSection({
+                            settings: { ...currentSection.settings, cssClasses: e.target.value }
+                          })}
+                          placeholder="e.g. overflow-hidden backdrop-blur-md"
+                          className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Entrance Animation</label>
+                        <select
+                          value={currentSection.settings.animation || 'none'}
+                          onChange={(e) => handleUpdateCurrentSection({
+                            settings: { ...currentSection.settings, animation: e.target.value as any }
+                          })}
+                          className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                        >
+                          <option value="none">None</option>
+                          <option value="fade">Fade In</option>
+                          <option value="fade-up">Fade Up</option>
+                          <option value="fade-down">Fade Down</option>
+                          <option value="zoom">Zoom In</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-slate-400 font-semibold mb-1 text-xs">Scoped Custom CSS</label>
+                        <textarea
+                          rows={4}
+                          value={currentSection.settings.customCss || ''}
+                          onChange={(e) => handleUpdateCurrentSection({
+                            settings: { ...currentSection.settings, customCss: e.target.value }
+                          })}
+                          placeholder="/* Scoped CSS */ selector { outline: 1px solid red; }"
+                          className="w-full px-3 py-2 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-8 text-center text-slate-500 space-y-2">

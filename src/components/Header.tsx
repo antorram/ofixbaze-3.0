@@ -197,8 +197,8 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <option value="NGN" className="bg-slate-900 text-white">NGN (₦)</option>
                 <option value="USD" className="bg-slate-900 text-white">USD ($)</option>
+                <option value="BDT" className="bg-slate-900 text-white">BDT (৳)</option>
                 <option value="GBP" className="bg-slate-900 text-white">GBP (£)</option>
-                <option value="EUR" className="bg-slate-900 text-white">EUR (€)</option>
               </select>
             </div>
           </div>
@@ -313,10 +313,17 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <span className="inline-block text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                        Price on Request
-                      </span>
-                      <div className="text-[10px] text-emerald-600 font-bold mt-0.5">In Stock</div>
+                      <div className="text-xs font-black text-slate-900">
+                        {formatPrice(product.priceNGN, currency)}
+                      </div>
+                      {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
+                        <div className="text-[10px] text-slate-400 line-through">
+                          {formatPrice(product.originalPriceNGN, currency)}
+                        </div>
+                      )}
+                      <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
+                        {product.inStock ? 'In Stock' : 'Out of Stock'}
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -360,19 +367,24 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="header-cart-button"
               onClick={onOpenCart}
-              className="flex items-center gap-2.5 px-3.5 py-2 bg-slate-900 hover:bg-orange-600 text-white rounded-xl transition shadow-xs cursor-pointer border border-slate-800"
+              className="flex items-center gap-2.5 px-3 sm:px-3.5 py-2 bg-slate-900 hover:bg-orange-600 text-white rounded-xl transition shadow-xs cursor-pointer border border-slate-800 group"
               aria-label={`Shopping cart with ${cartCount} items`}
               title="Shopping Cart"
             >
               <div className="relative">
-                <ShoppingCart className="w-4 h-4 text-orange-400" />
+                <ShoppingCart className="w-4 h-4 text-orange-400 group-hover:text-white transition-colors" />
                 {cartCount > 0 && (
                   <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-scale-up">
                     {cartCount}
                   </span>
                 )}
               </div>
-              <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider text-slate-200">Cart</span>
+              <div className="hidden sm:flex flex-col text-left leading-tight">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-orange-100">Cart</span>
+                <span className="text-xs font-black text-white">
+                  {cartTotalNGN > 0 ? formatPrice(cartTotalNGN, currency) : '₦0'}
+                </span>
+              </div>
             </button>
 
             {/* Mobile Hamburger Menu Toggle */}

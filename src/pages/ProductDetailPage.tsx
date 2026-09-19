@@ -294,23 +294,36 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
           </div>
 
-          {/* RFQ Quote Box */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-orange-600" />
-                <span>Price on Request</span>
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Official Corporate Proforma Invoice & Quantity Discount upon request
-              </p>
+          {/* Ecommerce Price & Offer Box */}
+          <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/80">
+            <div className="flex flex-wrap items-baseline gap-3">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                {formatPrice(product.priceNGN, currency)}
+              </span>
+              {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm sm:text-base text-slate-400 line-through">
+                    {formatPrice(product.originalPriceNGN, currency)}
+                  </span>
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300">
+                    SAVE {Math.round(((product.originalPriceNGN - product.priceNGN) / product.originalPriceNGN) * 100)}%
+                  </span>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => setActivePage('rfq')}
-              className="px-4 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-bold rounded-lg border border-orange-200 transition cursor-pointer"
-            >
-              Request Custom Proforma RFQ
-            </button>
+            
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-200/60 text-xs text-slate-500">
+              <span className="flex items-center gap-1 text-slate-600 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Price includes applicable sales tax &amp; VAT</span>
+              </span>
+              <button
+                onClick={() => setActivePage('rfq')}
+                className="text-blue-700 hover:text-blue-900 font-semibold underline cursor-pointer"
+              >
+                Need Corporate Bulk Proforma?
+              </button>
+            </div>
           </div>
 
           {/* Short Description */}
@@ -354,38 +367,39 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 </button>
               </div>
 
-              {/* Request Quote */}
+              {/* Add to Cart */}
               <button
                 id="product-detail-add-cart"
                 onClick={handleAddToCart}
                 disabled={!product.inStock}
-                className={`flex-1 py-3 px-5 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
+                className={`flex-1 py-3 px-5 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 cursor-pointer shadow-sm ${
                   isAdded
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-slate-950 hover:bg-orange-600 text-white'
+                    : 'bg-slate-900 hover:bg-orange-600 text-white'
                 } disabled:bg-slate-200 disabled:text-slate-400`}
               >
                 {isAdded ? (
                   <>
                     <Check className="w-4 h-4" />
-                    <span>Quote Requested!</span>
+                    <span>Added to Cart!</span>
                   </>
                 ) : (
                   <>
-                    <FileText className="w-4 h-4 text-orange-400" />
-                    <span>Request Quote</span>
+                    <ShoppingCart className="w-4 h-4 text-orange-400" />
+                    <span>Add to Cart {quantity > 1 ? `(${formatPrice(product.priceNGN * quantity, currency)})` : ''}</span>
                   </>
                 )}
               </button>
 
-              {/* Instant RFQ */}
+              {/* Instant Buy Now */}
               <button
                 id="product-detail-buy-now"
                 onClick={handleBuyNow}
                 disabled={!product.inStock}
-                className="py-3 px-6 rounded-lg text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white transition cursor-pointer disabled:bg-slate-200"
+                className="py-3 px-6 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-500 text-white transition cursor-pointer disabled:bg-slate-200 shadow-sm flex items-center gap-1.5"
               >
-                Instant RFQ
+                <span>Buy Now</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
 
               {/* Wishlist */}
