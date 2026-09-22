@@ -21,7 +21,6 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Product, Currency } from '../../types';
-import { formatPrice } from '../../utils/currency';
 import { CATEGORIES } from '../../data/categories';
 import { CsvImportModal } from './CsvImportModal';
 
@@ -229,8 +228,6 @@ export const AdminProductsTab: React.FC<AdminProductsTabProps> = ({
               className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-xs text-slate-700 focus:outline-none focus:border-orange-500 cursor-pointer"
             >
               <option value="name">Product Name (A-Z)</option>
-              <option value="price-asc">Price (Low to High)</option>
-              <option value="price-desc">Price (High to Low)</option>
               <option value="stock-asc">Stock (Low to High)</option>
               <option value="stock-desc">Stock (High to Low)</option>
             </select>
@@ -265,7 +262,7 @@ export const AdminProductsTab: React.FC<AdminProductsTabProps> = ({
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-4">Item Details</th>
                 <th className="py-3 px-4">Category & SKU</th>
-                <th className="py-3 px-4">Price (NGN)</th>
+                <th className="py-3 px-4">Pricing Status</th>
                 <th className="py-3 px-4">Stock Level</th>
                 <th className="py-3 px-4">Badges & OEM</th>
                 <th className="py-3 px-4 text-right">Actions</th>
@@ -319,16 +316,14 @@ export const AdminProductsTab: React.FC<AdminProductsTabProps> = ({
                         </div>
                       </td>
 
-                      {/* Price */}
+                      {/* Pricing Status */}
                       <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900 text-sm">
-                          {formatPrice(product.priceNGN, currency)}
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded border border-orange-200">
+                          Price on Request
+                        </span>
+                        <div className="text-[10px] text-slate-500 font-medium mt-0.5">
+                          Instant RFQ Enabled
                         </div>
-                        {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
-                          <div className="text-[11px] text-slate-400 line-through">
-                            {formatPrice(product.originalPriceNGN, currency)}
-                          </div>
-                        )}
                       </td>
 
                       {/* Stock Level with Quick +/- */}

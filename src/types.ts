@@ -311,6 +311,7 @@ export type CMSWidgetType =
   | 'button'
   | 'image'
   | 'image_gallery'
+  | 'image_slider'
   | 'video'
   | 'icon'
   | 'icon_box'
@@ -346,11 +347,13 @@ export type CMSWidgetType =
   // Business & Sections
   | 'hero_banner'
   | 'banner_slider'
+  | 'hero_slider'
   | 'cta_banner'
   | 'trust_badges'
   | 'testimonials'
   | 'client_logos'
   | 'brand_logos'
+  | 'logo_slider'
   | 'faq'
   | 'contact_form'
   | 'rfq_form'
@@ -509,6 +512,57 @@ export interface CMSWidgetSettings extends ResponsiveVisibility {
   hoverOpacityEffect?: boolean;
   imageLinkUrl?: string;
   imageLinkTarget?: '_self' | '_blank';
+  // Category Grid & Card Controls
+  selectedCategorySlugs?: string[];
+  categoriesLimit?: number;
+  categoryCardBorderRadius?: number;
+  categoryCardBgColor?: string;
+  categoryCardBorderColor?: string;
+  categoryCardHoverBorderColor?: string;
+  showItemCount?: boolean;
+  // Slider & Carousel Controls
+  sliderSource?: 'homepage-hero' | 'custom';
+  sliderAutoplay?: boolean;
+  sliderInterval?: number;
+  sliderShowArrows?: boolean;
+  sliderShowDots?: boolean;
+  sliderHeight?: string;
+  sliderTheme?: 'modern-dark' | 'corporate-light' | 'clean-white';
+  // Logo & Brand Slider Controls
+  logoSliderMode?: 'marquee' | 'carousel';
+  logoSliderSpeed?: number;
+  logoSliderGrayscale?: boolean;
+  logoSliderHeight?: number | string;
+  logoSliderItemsToShow?: number;
+  logoSliderPauseOnHover?: boolean;
+  logoSliderShowArrows?: boolean;
+  logoSliderShowDots?: boolean;
+  logoSliderBgColor?: string;
+  logoSliderBorderRadius?: number;
+  // Product Slider Controls
+  productSliderAutoplay?: boolean;
+  productSliderInterval?: number;
+  productSliderItemsToShow?: number;
+  productSliderShowArrows?: boolean;
+  productSliderShowDots?: boolean;
+  productSliderScrollBy?: number;
+  // Image Slider Controls
+  imageSliderAutoplay?: boolean;
+  imageSliderInterval?: number;
+  imageSliderHeight?: string;
+  imageSliderAspectRatio?: '16:9' | '4:3' | '21:9' | 'auto' | 'square';
+  imageSliderBorderRadius?: number;
+  imageSliderShowArrows?: boolean;
+  imageSliderShowDots?: boolean;
+  imageSliderEffect?: 'slide' | 'fade';
+  imageSliderObjectFit?: 'cover' | 'contain';
+  imageSliderHeightMobile?: string;
+  mobileImageSliderHeight?: string;
+  mobileMinHeight?: string;
+  minHeightMobile?: string;
+  mobileHeight?: string;
+  heightMobile?: string;
+  mobileImageMinHeight?: string;
 }
 
 export interface CMSWidget {
@@ -530,13 +584,22 @@ export interface CMSWidget {
     openInNewTab?: boolean;
     videoUrl?: string;
     icon?: string;
+    deliveryText?: string;
     items?: Array<{
       id: string;
       title: string;
       description?: string;
+      badge?: string;
+      subtext?: string;
       icon?: string;
       image?: string;
+      imageUrl?: string;
       link?: string;
+      buttonText?: string;
+      buttonUrl?: string;
+      secondaryBtnText?: string;
+      secondaryBtnUrl?: string;
+      deliveryText?: string;
       price?: string;
       category?: string;
       author?: string;
@@ -564,8 +627,10 @@ export interface CMSSectionSettings extends ResponsiveVisibility {
   width?: string;
   customWidth?: string;
   minHeight?: string;
+  mobileMinHeight?: string;
   customMinHeight?: string;
   height?: string;
+  mobileHeight?: string;
   flexDirection?: 'row' | 'column';
   flexWrap?: 'wrap' | 'nowrap';
   justifyContent?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly' | 'flex-start' | 'flex-end' | 'space-between' | 'space-around' | 'space-evenly';

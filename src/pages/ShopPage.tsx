@@ -18,7 +18,6 @@ import { CATEGORIES } from '../data/categories';
 import { PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/ProductCard';
 import { isProductInCategory } from '../utils/categoryMatcher';
-import { formatPrice } from '../utils/currency';
 
 interface ShopPageProps {
   currency: Currency;
@@ -302,8 +301,6 @@ export const ShopPage: React.FC<ShopPageProps> = ({
             >
               <option value="featured">Featured First</option>
               <option value="rating">Highest Rated</option>
-              <option value="price-asc">Price: Low to High</option>
-              <option value="price-desc">Price: High to Low</option>
               <option value="name-asc">Product Name (A - Z)</option>
               <option value="name-desc">Product Name (Z - A)</option>
             </select>
@@ -528,19 +525,9 @@ export const ShopPage: React.FC<ShopPageProps> = ({
 
                   <div className="sm:border-l sm:border-slate-100 sm:pl-5 flex flex-col items-end justify-center shrink-0 w-full sm:w-auto">
                     <div className="text-right mb-3">
-                      <div className="text-base font-black text-slate-900">
-                        {formatPrice(product.priceNGN, currency)}
-                      </div>
-                      {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
-                        <div className="flex items-center gap-1.5 justify-end mt-0.5">
-                          <span className="text-xs text-slate-400 line-through">
-                            {formatPrice(product.originalPriceNGN, currency)}
-                          </span>
-                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                            -{Math.round(((product.originalPriceNGN - product.priceNGN) / product.originalPriceNGN) * 100)}%
-                          </span>
-                        </div>
-                      )}
+                      <span className="inline-block text-xs font-black text-orange-600 uppercase tracking-wider bg-orange-50 px-2.5 py-1 rounded border border-orange-200/60">
+                        Price on Request
+                      </span>
                     </div>
                     <button
                       onClick={(e) => {
@@ -550,7 +537,7 @@ export const ShopPage: React.FC<ShopPageProps> = ({
                       className="w-full sm:w-auto px-4 py-2 bg-slate-900 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
                     >
                       <ShoppingCart className="w-3.5 h-3.5 text-orange-400" />
-                      <span>Add to Cart</span>
+                      <span>Add to Quote</span>
                     </button>
                   </div>
                 </div>

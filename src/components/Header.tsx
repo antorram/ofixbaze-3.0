@@ -28,7 +28,6 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { ActivePage, Currency, Product, StoreSettings, Category, NavMenuItem } from '../types';
-import { formatPrice } from '../utils/currency';
 import { CATEGORIES } from '../data/categories';
 import { PRODUCTS } from '../data/products';
 import { DEFAULT_NAV_MENU } from '../data/defaultMenu';
@@ -187,19 +186,10 @@ export const Header: React.FC<HeaderProps> = ({
               <PhoneCall className="w-3 h-3 text-emerald-400" />
               <span>0906-942-5822</span>
             </a>
-            {/* Currency Selector */}
-            <div className="flex items-center gap-1 text-[11px] bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
-              <span className="text-slate-400 text-[10px] font-bold">CUR:</span>
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value as Currency)}
-                className="bg-transparent text-white text-[11px] font-bold focus:outline-none cursor-pointer"
-              >
-                <option value="NGN" className="bg-slate-900 text-white">NGN (₦)</option>
-                <option value="USD" className="bg-slate-900 text-white">USD ($)</option>
-                <option value="BDT" className="bg-slate-900 text-white">BDT (৳)</option>
-                <option value="GBP" className="bg-slate-900 text-white">GBP (£)</option>
-              </select>
+            {/* Corporate Registration & Trust Badge */}
+            <div className="flex items-center gap-1.5 text-[11px] text-slate-300 bg-slate-900 border border-slate-800 px-2.5 py-0.5 rounded font-medium">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>RC 1684351 • Lagos, NG</span>
             </div>
           </div>
         </div>
@@ -214,24 +204,19 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={() => setActivePage('home')}
             className="flex items-center cursor-pointer select-none group shrink-0"
           >
-            <div className="flex flex-col">
-              <div className="relative h-11 flex items-center">
-                {!logoError ? (
-                  <img 
-                    src="https://ofixbaze.com/wp-content/uploads/2020/04/LOGO.jpg" 
-                    alt="OFIXBAZE Nigeria Limited" 
-                    className="h-10 w-auto object-contain max-w-[170px] transition-transform group-hover:scale-102"
-                    onError={() => setLogoError(true)}
-                  />
-                ) : (
-                  <span className="text-xl font-black tracking-tight text-slate-900 group-hover:text-orange-600 transition-colors">
-                    OFIXBAZE
-                  </span>
-                )}
-              </div>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 -mt-1 hidden sm:block">
-                RC: 1489201 • B2B Procurement
-              </span>
+            <div className="relative h-11 flex items-center">
+              {!logoError ? (
+                <img 
+                  src="https://ofixbaze.com/wp-content/uploads/2020/04/LOGO.jpg" 
+                  alt="OFIXBAZE Nigeria Limited" 
+                  className="h-10 w-auto object-contain max-w-[170px] transition-transform group-hover:scale-102"
+                  onError={() => setLogoError(true)}
+                />
+              ) : (
+                <span className="text-xl font-black tracking-tight text-slate-900 group-hover:text-orange-600 transition-colors">
+                  OFIXBAZE
+                </span>
+              )}
             </div>
           </div>
 
@@ -313,14 +298,9 @@ export const Header: React.FC<HeaderProps> = ({
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xs font-black text-slate-900">
-                        {formatPrice(product.priceNGN, currency)}
+                      <div className="text-[11px] font-black text-orange-600 uppercase">
+                        Price on Request
                       </div>
-                      {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
-                        <div className="text-[10px] text-slate-400 line-through">
-                          {formatPrice(product.originalPriceNGN, currency)}
-                        </div>
-                      )}
                       <div className="text-[10px] text-emerald-600 font-bold mt-0.5">
                         {product.inStock ? 'In Stock' : 'Out of Stock'}
                       </div>
@@ -380,9 +360,9 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               <div className="hidden sm:flex flex-col text-left leading-tight">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-orange-100">Cart</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 group-hover:text-orange-100">Quote Cart</span>
                 <span className="text-xs font-black text-white">
-                  {cartTotalNGN > 0 ? formatPrice(cartTotalNGN, currency) : '₦0'}
+                  {cartCount} {cartCount === 1 ? 'Item' : 'Items'}
                 </span>
               </div>
             </button>

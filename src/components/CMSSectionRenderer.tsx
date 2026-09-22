@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Truck, 
@@ -8,7 +8,9 @@ import {
   Sparkles, 
   Star, 
   Quote, 
+  ChevronLeft,
   ChevronRight, 
+  SlidersHorizontal,
   CheckCircle2, 
   Play, 
   ExternalLink, 
@@ -43,10 +45,18 @@ import {
   Category, 
   Currency, 
   ActivePage, 
-  Brand 
+  Brand,
+  DeviceMode 
 } from '../types';
 import { ProductCard } from './ProductCard';
 import { isProductInCategory } from '../utils/categoryMatcher';
+import { SlideConfig, INITIAL_SLIDES_CONFIG } from '../data/adminData';
+import { HeroSlider } from './HeroSlider';
+import { 
+  CMSLogoSliderWidget, 
+  CMSProductSliderWidget, 
+  CMSImageSliderWidget 
+} from './CMSSliderWidgets';
 
 interface CMSSectionRendererProps {
   section: CMSSection;
@@ -61,6 +71,7 @@ interface CMSSectionRendererProps {
   wishlistIds?: string[];
   onQuickView?: (product: Product) => void;
   onOpenAuthenticityModal?: () => void;
+  slides?: SlideConfig[];
   // Builder specific props (optional - if provided, enables builder selection & inline tools)
   isBuilderMode?: boolean;
   selectedSectionId?: string | null;
@@ -102,6 +113,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
   wishlistIds = [],
   onQuickView,
   onOpenAuthenticityModal,
+  slides,
   isBuilderMode = false,
   selectedSectionId,
   selectedWidgetId,
@@ -139,11 +151,33 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
     requirements: ''
   });
 
+  // Screen size detection for live storefront view (when not manually selected via builder deviceMode)
+  const [windowWidth, setWindowWidth] = useState<number>(() => typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+  useEffect(() => {
+    if (isBuilderMode) return;
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isBuilderMode]);
+
+  const effectiveDeviceMode: DeviceMode = isBuilderMode 
+    ? deviceMode 
+    : (windowWidth < 640 ? 'mobile' : windowWidth < 1024 ? 'tablet' : 'desktop');
+
   if (!section.enabled && !isBuilderMode) {
     return null;
   }
 
   const isSectionSelected = isBuilderMode && selectedSectionId === section.id;
+
+  // Detect whether this section represents an image or hero banner
+  const isImageBannerSection = section.widgets.length === 1 && (
+    section.widgets[0].type === 'image' || 
+    section.widgets[0].type === 'banner_slider' || 
+    section.widgets[0].type === 'hero_banner' ||
+    section.widgets[0].type === 'image_slider'
+  );
 
   // Responsive hide classes for section
   const sectionHideClasses = [
@@ -159,7 +193,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
     let pl = section.settings.paddingLeft;
     let pr = section.settings.paddingRight;
 
-    if (deviceMode === 'tablet') {
+    if (effectiveDeviceMode === 'tablet') {
       if (section.settings.tabletPaddingTop !== undefined) pt = section.settings.tabletPaddingTop;
       else if (section.settings.paddingTopTablet !== undefined) pt = section.settings.paddingTopTablet;
 
@@ -168,12 +202,14 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
 
       if (section.settings.tabletPaddingLeft !== undefined) pl = section.settings.tabletPaddingLeft;
       if (section.settings.tabletPaddingRight !== undefined) pr = section.settings.tabletPaddingRight;
-    } else if (deviceMode === 'mobile') {
+    } else if (effectiveDeviceMode === 'mobile') {
       if (section.settings.mobilePaddingTop !== undefined) pt = section.settings.mobilePaddingTop;
       else if (section.settings.paddingTopMobile !== undefined) pt = section.settings.paddingTopMobile;
+      else if (isImageBannerSection) pt = Math.min(pt, 12);
 
       if (section.settings.mobilePaddingBottom !== undefined) pb = section.settings.mobilePaddingBottom;
       else if (section.settings.paddingBottomMobile !== undefined) pb = section.settings.paddingBottomMobile;
+      else if (isImageBannerSection) pb = 0; // Avoid artificial empty gap beneath banners on mobile
 
       if (section.settings.mobilePaddingLeft !== undefined) pl = section.settings.mobilePaddingLeft;
       if (section.settings.mobilePaddingRight !== undefined) pr = section.settings.mobilePaddingRight;
@@ -186,9 +222,6 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
   // Compute background styling
   const isSectionBoxed = section.settings.layout === 'boxed';
   const widthMode = section.settings.contentWidthMode || (isSectionBoxed ? 'boxed' : 'full-width');
-  const sectionMaxWidth = isSectionBoxed 
-    ? (section.settings.customWidth || section.settings.contentMaxWidth || section.settings.maxWidth || '1320px') 
-    : undefined;
 
   let computedSectionShadow = section.settings.boxShadow;
   if (!computedSectionShadow) {
@@ -232,15 +265,16 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
     color: section.settings.textColor || undefined,
     paddingTop: `${sectionPt}px`,
     paddingBottom: `${sectionPb}px`,
-    paddingLeft: (isSectionBoxed && widthMode !== 'full-bleed' && sectionPl !== undefined) ? `${sectionPl}px` : undefined,
-    paddingRight: (isSectionBoxed && widthMode !== 'full-bleed' && sectionPr !== undefined) ? `${sectionPr}px` : undefined,
     marginTop: section.settings.marginTop ? `${section.settings.marginTop}px` : undefined,
     marginBottom: section.settings.marginBottom ? `${section.settings.marginBottom}px` : undefined,
-    minHeight: section.settings.minHeight || undefined,
-    height: section.settings.height || undefined,
-    maxWidth: sectionMaxWidth,
-    marginLeft: isSectionBoxed ? 'auto' : undefined,
-    marginRight: isSectionBoxed ? 'auto' : undefined,
+    minHeight: effectiveDeviceMode === 'mobile'
+      ? (section.settings.mobileMinHeight || undefined)
+      : (section.settings.minHeight || undefined),
+    height: effectiveDeviceMode === 'mobile'
+      ? (section.settings.mobileHeight || undefined)
+      : (section.settings.height || undefined),
+    width: '100%',
+    maxWidth: '100%',
     borderRadius: computedSectionRadius,
     borderWidth: section.settings.borderWidth ? `${section.settings.borderWidth}px` : undefined,
     borderTopWidth: section.settings.borderTopWidth ? `${section.settings.borderTopWidth}px` : undefined,
@@ -335,8 +369,9 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
       widget.settings.hideMobile ? 'max-md:hidden' : ''
     ].filter(Boolean).join(' ');
 
-    const isFullWidthWidget = widget.type === 'image' && 
-      (widget.settings.imageWidthMode === 'full-width' || widget.settings.imageWidthMode === 'full-bleed' || widget.settings.imageAlignment === 'stretch');
+    const isFullWidthWidget = (widget.type === 'image' && 
+      (widget.settings.imageWidthMode === 'full-width' || widget.settings.imageWidthMode === 'full-bleed' || widget.settings.imageAlignment === 'stretch')) ||
+      widget.type === 'banner_slider' || widget.type === 'hero_slider' || widget.type === 'image_slider';
 
     // Compute widget shadow
     let computedWidgetShadow = widget.settings.boxShadow;
@@ -368,15 +403,26 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
         ? `${widget.settings.borderRadius}px` 
         : undefined;
 
+    const isImageOrBanner = widget.type === 'image' || widget.type === 'banner_slider' || widget.type === 'hero_slider' || widget.type === 'image_slider';
+
+    // Avoid legacy desktop 400px min-height creating blank space on mobile view
+    const computedWidgetMinHeight = effectiveDeviceMode === 'mobile'
+      ? (widget.settings.mobileMinHeight || widget.settings.minHeightMobile || undefined)
+      : (isImageOrBanner && widget.settings.imageHeightMode !== 'custom' ? undefined : (widget.settings.minHeight || undefined));
+
+    const computedWidgetHeight = effectiveDeviceMode === 'mobile'
+      ? (widget.settings.mobileHeight || widget.settings.heightMobile || undefined)
+      : (widget.settings.height || undefined);
+
     const widgetStyle: React.CSSProperties = {
       color: widget.settings.textColor || undefined,
       backgroundColor: widget.settings.bgColor || undefined,
       paddingTop: widget.settings.paddingTop !== undefined ? `${widget.settings.paddingTop}px` : undefined,
       paddingBottom: widget.settings.paddingBottom !== undefined ? `${widget.settings.paddingBottom}px` : undefined,
-      paddingLeft: (widget.type === 'image' && widget.settings.imageWidthMode === 'full-bleed') 
+      paddingLeft: ((widget.type === 'image' && widget.settings.imageWidthMode === 'full-bleed') || widget.type === 'banner_slider' || widget.type === 'hero_slider') 
         ? 0 
         : (widget.settings.paddingLeft !== undefined ? `${widget.settings.paddingLeft}px` : undefined),
-      paddingRight: (widget.type === 'image' && widget.settings.imageWidthMode === 'full-bleed') 
+      paddingRight: ((widget.type === 'image' && widget.settings.imageWidthMode === 'full-bleed') || widget.type === 'banner_slider' || widget.type === 'hero_slider') 
         ? 0 
         : (widget.settings.paddingRight !== undefined ? `${widget.settings.paddingRight}px` : undefined),
       marginTop: widget.settings.marginTop !== undefined ? `${widget.settings.marginTop}px` : undefined,
@@ -397,8 +443,8 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
       opacity: widget.settings.opacity !== undefined ? widget.settings.opacity : undefined,
       width: widget.settings.width || (isFullWidthWidget ? '100%' : undefined),
       maxWidth: widget.settings.maxWidth || undefined,
-      minHeight: widget.settings.minHeight || undefined,
-      height: widget.settings.height || undefined,
+      minHeight: computedWidgetMinHeight,
+      height: computedWidgetHeight,
       zIndex: widget.settings.zIndex || undefined,
       position: (widget.settings.position as any) || 'relative'
     };
@@ -427,7 +473,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           }
         }}
         style={widgetStyle}
-        className={`relative transition-all duration-150 ${widgetHideClasses} ${hoverEffects} ${widget.settings.cssClasses || ''} ${
+        className={`relative transition-all duration-150 ${isImageOrBanner ? 'max-md:!min-h-0 max-md:!h-auto' : ''} ${widgetHideClasses} ${hoverEffects} ${widget.settings.cssClasses || ''} ${
           isWidgetSelected
             ? 'outline outline-2 outline-blue-500 rounded bg-blue-500/5'
             : isBuilderMode
@@ -531,7 +577,11 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
 
         {/* 1. HEADING */}
         {widget.type === 'heading' && (
-          <div>
+          <div className={
+            widget.settings.textAlign === 'center' ? 'text-center' :
+            widget.settings.textAlign === 'right' ? 'text-right' :
+            widget.settings.textAlign === 'justify' ? 'text-justify' : 'text-left'
+          }>
             {widget.content.badge && (
               <span className="inline-block text-[11px] font-black uppercase tracking-wider text-orange-600 bg-orange-50 px-3 py-1 rounded-full border border-orange-200 mb-2">
                 {widget.content.badge}
@@ -552,27 +602,37 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
                 />
                 <button
                   onClick={() => handleInlineSave(widget.id)}
-                  className="px-3 py-1.5 bg-blue-600 text-white rounded font-bold text-xs"
+                  className="px-3 py-1.5 bg-blue-600 text-white rounded font-bold text-xs cursor-pointer"
                 >
                   Save
                 </button>
               </div>
             ) : (
-              <h2
-                style={{
-                  fontSize: widget.settings.fontSize || '28px',
-                  fontWeight: widget.settings.fontWeight || '800',
-                  lineHeight: widget.settings.lineHeight || '1.2',
-                  letterSpacing: widget.settings.letterSpacing || 'normal',
-                  textTransform: widget.settings.textTransform || 'none'
-                }}
-                className="font-black text-slate-900 tracking-tight"
-              >
-                {widget.content.text || 'Enter Headline Text'}
-              </h2>
+              widget.content.text ? (
+                <h2
+                  style={{
+                    fontSize: widget.settings.fontSize || '28px',
+                    fontWeight: widget.settings.fontWeight || '800',
+                    lineHeight: widget.settings.lineHeight || '1.2',
+                    letterSpacing: widget.settings.letterSpacing || 'normal',
+                    textTransform: widget.settings.textTransform || 'none'
+                  }}
+                  className="font-black text-slate-900 tracking-tight"
+                >
+                  {widget.content.text}
+                </h2>
+              ) : isBuilderMode && !widget.content.badge && !widget.content.subtext ? (
+                <div className="py-2.5 px-3 border border-dashed border-slate-300 text-slate-400 text-xs rounded-lg text-center bg-slate-50/50">
+                  (Empty Heading - Click or use Inspector to add text)
+                </div>
+              ) : null
             )}
             {widget.content.subtext && (
-              <p className="text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed">
+              <p className={`text-sm text-slate-600 mt-2 max-w-2xl leading-relaxed ${
+                widget.settings.textAlign === 'center' ? 'mx-auto text-center' :
+                widget.settings.textAlign === 'right' ? 'ml-auto text-right' :
+                widget.settings.textAlign === 'justify' ? 'text-justify' : 'text-left'
+              }`}>
                 {widget.content.subtext}
               </p>
             )}
@@ -586,11 +646,18 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
               fontSize: widget.settings.fontSize || '15px',
               lineHeight: widget.settings.lineHeight || '1.6',
               fontWeight: widget.settings.fontWeight || 'normal',
-              color: widget.settings.textColor || '#475569'
+              color: widget.settings.textColor || '#475569',
+              textAlign: widget.settings.textAlign || 'left'
             }}
             className="leading-relaxed"
           >
-            {widget.content.text || 'Add descriptive corporate copy, specifications, and details here.'}
+            {widget.content.text ? (
+              widget.content.text
+            ) : isBuilderMode ? (
+              <div className="py-2 px-3 border border-dashed border-slate-300 text-slate-400 text-xs rounded text-center bg-slate-50/50">
+                (Empty Text Block - Add content in Inspector)
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -639,19 +706,19 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           const widthMode = widget.settings.imageWidthMode || 'default';
           const heightMode = widget.settings.imageHeightMode || 'auto';
           const alignment = widget.settings.imageAlignment || 'center';
-          const isFullBleed = widthMode === 'full-bleed';
-          const isFullWidth = widthMode === 'full-width' || isFullBleed;
+          const isFullBleed = widthMode === 'full-bleed' || widget.settings.imageWidthMode === 'full-bleed';
+          const isFullWidth = widthMode === 'full-width' || isFullBleed || widget.settings.imageWidthMode === 'full-width' || alignment === 'stretch';
 
-          // Responsive sizing based on deviceMode
-          let effWidth = (deviceMode === 'desktop' && widget.settings.imageWidthDesktop)
+          // Responsive sizing based on effectiveDeviceMode
+          let effWidth = (effectiveDeviceMode === 'desktop' && widget.settings.imageWidthDesktop)
             ? widget.settings.imageWidthDesktop
-            : (widget.settings.imageWidth || (isFullWidth ? '100%' : 'auto'));
-          let effHeight = (deviceMode === 'desktop' && widget.settings.imageHeightDesktop)
+            : (widget.settings.imageWidth || '100%');
+          let effHeight = (effectiveDeviceMode === 'desktop' && widget.settings.imageHeightDesktop)
             ? widget.settings.imageHeightDesktop
             : (heightMode === 'custom' ? (widget.settings.imageHeight || '400px') : 'auto');
           let effMaxWidth = isFullWidth ? 'none' : (widget.settings.imageMaxWidth || '100%');
 
-          if (deviceMode === 'tablet') {
+          if (effectiveDeviceMode === 'tablet') {
             if (widget.settings.imageWidthTablet) effWidth = widget.settings.imageWidthTablet;
             else if (widget.settings.tabletImageWidth) effWidth = widget.settings.tabletImageWidth;
 
@@ -659,12 +726,14 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
             else if (widget.settings.tabletImageHeight && heightMode === 'custom') effHeight = widget.settings.tabletImageHeight;
 
             if (widget.settings.tabletImageMaxWidth) effMaxWidth = widget.settings.tabletImageMaxWidth;
-          } else if (deviceMode === 'mobile') {
+          } else if (effectiveDeviceMode === 'mobile') {
             if (widget.settings.imageWidthMobile) effWidth = widget.settings.imageWidthMobile;
             else if (widget.settings.mobileImageWidth) effWidth = widget.settings.mobileImageWidth;
+            else effWidth = '100%';
 
-            if (widget.settings.imageHeightMobile && heightMode === 'custom') effHeight = widget.settings.imageHeightMobile;
-            else if (widget.settings.mobileImageHeight && heightMode === 'custom') effHeight = widget.settings.mobileImageHeight;
+            if (widget.settings.imageHeightMobile) effHeight = widget.settings.imageHeightMobile;
+            else if (widget.settings.mobileImageHeight) effHeight = widget.settings.mobileImageHeight;
+            else effHeight = 'auto'; // Seamless auto aspect ratio on mobile avoids blank vertical whitespace
 
             if (widget.settings.mobileImageMaxWidth) effMaxWidth = widget.settings.mobileImageMaxWidth;
           }
@@ -745,7 +814,9 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
                 minWidth: widget.settings.imageMinWidth || undefined,
                 height: effHeight,
                 maxHeight: widget.settings.imageMaxHeight || undefined,
-                minHeight: widget.settings.imageMinHeight || undefined,
+                minHeight: effectiveDeviceMode === 'mobile' 
+                  ? (widget.settings.mobileImageMinHeight || widget.settings.mobileMinHeight || undefined) 
+                  : (widget.settings.imageMinHeight || undefined),
                 objectFit: heightMode === 'custom' ? objectFit : undefined,
                 objectPosition: heightMode === 'custom' ? objectPosition : undefined,
                 borderRadius: computedBorderRadius,
@@ -755,7 +826,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
                 opacity: widget.settings.imageOpacity !== undefined ? widget.settings.imageOpacity : 1,
                 display: 'block'
               }}
-              className={`transition-all duration-300 ${shadowClass} ${
+              className={`transition-all duration-300 max-md:!min-h-0 max-md:h-auto ${shadowClass} ${
                 (widget.settings.imageHoverScale || widget.settings.hoverScaleEffect) ? 'hover:scale-[1.02]' : ''
               } ${(widget.settings.imageHoverOpacity !== undefined || widget.settings.hoverOpacityEffect) ? 'hover:opacity-90' : ''}`}
             />
@@ -766,7 +837,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
               href={!isBuilderMode ? (widget.content.imageLink || widget.settings.imageLinkUrl) : undefined}
               target={widget.content.openInNewTab || widget.settings.imageLinkTarget === '_blank' ? '_blank' : '_self'}
               rel="noreferrer"
-              className="inline-block w-full cursor-pointer"
+              className="inline-block w-full cursor-pointer max-md:!min-h-0"
               onClick={(e) => {
                 if (isBuilderMode) e.preventDefault();
               }}
@@ -778,7 +849,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           return (
             <div 
               style={fullBleedStyle}
-              className={`${isFullBleed ? 'py-0' : 'py-1'} ${alignClass} ${fullBleedClass} overflow-hidden`}
+              className={`${isFullBleed ? 'py-0' : 'py-0 sm:py-1'} ${alignClass} ${fullBleedClass} overflow-hidden max-md:!min-h-0`}
             >
               {linkedElement}
             </div>
@@ -892,17 +963,87 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           </div>
         )}
 
-        {/* 6. PRODUCT GRID / CAROUSEL / FEATURED */}
+        {/* 5B. BANNER SLIDER / HERO SLIDER */}
+        {(widget.type === 'banner_slider' || widget.type === 'hero_slider') && (() => {
+          const isCustomSource = widget.settings?.sliderSource === 'custom' && Boolean(widget.content?.items && widget.content.items.length > 0);
+
+          const effectiveSlides: SlideConfig[] = isCustomSource
+            ? (widget.content.items || []).map((item, idx) => ({
+                id: item.id || `custom-slide-${idx}`,
+                enabled: true,
+                highlightTitle: item.badge || 'PREMIUM',
+                mainTitle: item.title || 'EXECUTIVE OFFICE SUITE',
+                subtitle: item.description || '',
+                tagline: item.subtext || '',
+                primaryBtnText: item.buttonText || 'REQUEST CORPORATE QUOTE',
+                secondaryBtnText: item.secondaryBtnText || 'EXPLORE CATALOGUE',
+                deliveryText: item.deliveryText || 'Same-Day Lagos White-Glove Assembled Delivery Available',
+                image: item.image || item.imageUrl || '/executive-tables-banner.jpg'
+              }))
+            : (slides && slides.length > 0 ? slides : INITIAL_SLIDES_CONFIG);
+
+          return (
+            <div className="w-full relative group/slider-widget">
+              <HeroSlider
+                setActivePage={setActivePage}
+                onSelectCategory={onSelectCategory || (() => {})}
+                onOpenAuthenticityModal={onOpenAuthenticityModal || (() => {})}
+                customSlides={effectiveSlides}
+              />
+              {isBuilderMode && (
+                <div className="absolute top-4 right-4 z-30 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md px-3 py-1.5 rounded-full border border-orange-500/40 text-[11px] text-orange-300 font-bold pointer-events-none shadow-xl">
+                  <SlidersHorizontal className="w-3.5 h-3.5 text-orange-400" />
+                  <span>Hero Slider ({isCustomSource ? `${effectiveSlides.length} Custom Slides` : 'Synced with Sliders & Banners'})</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* 6. PRODUCT GRID / FEATURED */}
         {(widget.type === 'product_grid' || 
           widget.type === 'featured_products' || 
           widget.type === 'latest_products' || 
-          widget.type === 'bestseller_products' ||
-          widget.type === 'product_carousel') && (
+          widget.type === 'bestseller_products') && (
           <div className="space-y-4">
             {/* Header if defined */}
             {(widget.content.text || widget.content.badge) && (
-              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
-                <div>
+              widget.settings.textAlign === 'left' ? (
+                <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 mb-4">
+                  <div>
+                    {widget.content.badge && (
+                      <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block mb-1">
+                        {widget.content.badge}
+                      </span>
+                    )}
+                    {widget.content.text && (
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                        {widget.content.text}
+                      </h3>
+                    )}
+                    {widget.content.subtext && (
+                      <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
+                        {widget.content.subtext}
+                      </p>
+                    )}
+                  </div>
+                  {!isBuilderMode && (
+                    <button
+                      onClick={() => {
+                        if (widget.settings.productCategory && onSelectCategory) {
+                          onSelectCategory(widget.settings.productCategory);
+                        }
+                        setActivePage('shop');
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition self-start sm:self-auto cursor-pointer"
+                    >
+                      <span>View All Products</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center max-w-2xl mx-auto mb-6">
                   {widget.content.badge && (
                     <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block mb-1">
                       {widget.content.badge}
@@ -914,26 +1055,28 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
                     </h3>
                   )}
                   {widget.content.subtext && (
-                    <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1.5 max-w-xl mx-auto">
                       {widget.content.subtext}
                     </p>
                   )}
+                  {!isBuilderMode && (
+                    <div className="mt-2.5 flex justify-center">
+                      <button
+                        onClick={() => {
+                          if (widget.settings.productCategory && onSelectCategory) {
+                            onSelectCategory(widget.settings.productCategory);
+                          }
+                          setActivePage('shop');
+                        }}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+                      >
+                        <span>View All Products</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {!isBuilderMode && (
-                  <button
-                    onClick={() => {
-                      if (widget.settings.productCategory && onSelectCategory) {
-                        onSelectCategory(widget.settings.productCategory);
-                      }
-                      setActivePage('shop');
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition self-start sm:self-auto cursor-pointer"
-                  >
-                    <span>View All Products</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
+              )
             )}
 
             {/* Filter and slice products */}
@@ -996,62 +1139,148 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           </div>
         )}
 
-        {/* 7. CATEGORY GRID / PRODUCT CATEGORIES */}
-        {(widget.type === 'category_grid' || widget.type === 'product_categories') && (
-          <div className="space-y-4">
-            {(widget.content.text || widget.content.badge) && (
-              <div className="mb-3">
-                {widget.content.badge && (
-                  <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block mb-1">
-                    {widget.content.badge}
-                  </span>
-                )}
-                {widget.content.text && (
-                  <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                    {widget.content.text}
-                  </h3>
-                )}
-                {widget.content.subtext && (
-                  <p className="text-xs text-slate-500 mt-1 max-w-xl">
-                    {widget.content.subtext}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-              {categories.slice(0, widget.settings.columnsCount ? widget.settings.columnsCount * 2 : 12).map(cat => {
-                const count = products.filter(p => isProductInCategory(p, cat.slug)).length;
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => {
-                      if (!isBuilderMode) {
-                        onSelectCategory?.(cat.slug);
-                        setActivePage('shop');
-                      }
-                    }}
-                    className="group bg-white rounded-xl border border-slate-200 hover:border-blue-500 hover:shadow-md p-3.5 transition flex flex-col items-center text-center cursor-pointer"
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-slate-50 p-1.5 mb-2 group-hover:scale-105 transition overflow-hidden flex items-center justify-center">
-                      <img
-                        src={cat.image}
-                        alt={cat.name}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                    <h4 className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition leading-tight line-clamp-2">
-                      {cat.name}
-                    </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 font-medium">
-                      {count} {count === 1 ? 'item' : 'items'}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        {/* 6B. PRODUCT SLIDER / CAROUSEL WIDGET */}
+        {(widget.type === 'product_carousel' || widget.type === 'product_slider') && (
+          <CMSProductSliderWidget
+            widget={widget}
+            products={products}
+            categories={categories}
+            currency={currency}
+            setActivePage={setActivePage}
+            onSelectCategory={onSelectCategory}
+            onSelectProduct={onSelectProduct}
+            onAddToCart={onAddToCart}
+            onToggleWishlist={onToggleWishlist}
+            wishlistIds={wishlistIds}
+            onQuickView={onQuickView}
+            isBuilderMode={isBuilderMode}
+          />
         )}
+
+        {/* 6C. IMAGE SLIDER / MULTI-IMAGE CAROUSEL WIDGET */}
+        {widget.type === 'image_slider' && (
+          <CMSImageSliderWidget
+            widget={widget}
+            setActivePage={setActivePage}
+            isBuilderMode={isBuilderMode}
+          />
+        )}
+
+        {/* 7. CATEGORY GRID / PRODUCT CATEGORIES */}
+        {(widget.type === 'category_grid' || widget.type === 'product_categories') && (() => {
+          // Dynamic category filtering based on admin panel selection
+          let displayCats = [...categories];
+          if (widget.settings.selectedCategorySlugs && widget.settings.selectedCategorySlugs.length > 0) {
+            const selectedSet = new Set(widget.settings.selectedCategorySlugs);
+            displayCats = displayCats.filter(cat => selectedSet.has(cat.slug) || selectedSet.has(cat.id));
+            // Maintain user-selected order
+            displayCats.sort((a, b) => {
+              const idxA = widget.settings.selectedCategorySlugs!.indexOf(a.slug);
+              const idxB = widget.settings.selectedCategorySlugs!.indexOf(b.slug);
+              return (idxA >= 0 ? idxA : 999) - (idxB >= 0 ? idxB : 999);
+            });
+          }
+
+          if (widget.settings.categoriesLimit && widget.settings.categoriesLimit > 0) {
+            displayCats = displayCats.slice(0, widget.settings.categoriesLimit);
+          } else if (!widget.settings.selectedCategorySlugs || widget.settings.selectedCategorySlugs.length === 0) {
+            const defaultLimit = widget.settings.columnsCount ? widget.settings.columnsCount * 2 : 12;
+            displayCats = displayCats.slice(0, defaultLimit);
+          }
+
+          // Dynamic Card Border Radius configured from Admin Panel
+          const cardRadius = widget.settings.categoryCardBorderRadius !== undefined 
+            ? widget.settings.categoryCardBorderRadius 
+            : (widget.settings.borderRadius !== undefined ? widget.settings.borderRadius : 12);
+
+          const innerImageRadius = Math.max(0, cardRadius - 4);
+
+          // Grid Columns responsive class
+          const cols = widget.settings.columnsCount || 6;
+          const gridColsClass = 
+            cols === 2 ? 'grid-cols-1 sm:grid-cols-2' :
+            cols === 3 ? 'grid-cols-2 sm:grid-cols-3' :
+            cols === 4 ? 'grid-cols-2 sm:grid-cols-4' :
+            cols === 5 ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5' :
+            'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6';
+
+          const cardBgColor = widget.settings.categoryCardBgColor || '#ffffff';
+          const cardBorderColor = widget.settings.categoryCardBorderColor || '#e2e8f0';
+          const showItemCount = widget.settings.showItemCount !== false;
+
+          return (
+            <div className="space-y-4">
+              {(widget.content.text || widget.content.badge) && (
+                <div className={`mb-6 ${widget.settings.textAlign === 'left' ? 'text-left' : 'text-center max-w-2xl mx-auto'}`}>
+                  {widget.content.badge && (
+                    <span className="text-xs font-bold text-orange-600 uppercase tracking-wider block mb-1">
+                      {widget.content.badge}
+                    </span>
+                  )}
+                  {widget.content.text && (
+                    <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                      {widget.content.text}
+                    </h3>
+                  )}
+                  {widget.content.subtext && (
+                    <p className={`text-xs sm:text-sm text-slate-500 mt-1.5 max-w-xl ${widget.settings.textAlign === 'left' ? '' : 'mx-auto'}`}>
+                      {widget.content.subtext}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {displayCats.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-300 text-slate-500 text-xs">
+                  No categories selected for this grid. Select categories from the Admin Page Builder properties panel.
+                </div>
+              ) : (
+                <div className={`grid ${gridColsClass} gap-3`}>
+                  {displayCats.map(cat => {
+                    const count = products.filter(p => isProductInCategory(p, cat.slug)).length;
+                    return (
+                      <div
+                        key={cat.id}
+                        onClick={() => {
+                          if (!isBuilderMode) {
+                            onSelectCategory?.(cat.slug);
+                            setActivePage('shop');
+                          }
+                        }}
+                        style={{
+                          borderRadius: `${cardRadius}px`,
+                          backgroundColor: cardBgColor,
+                          borderColor: cardBorderColor
+                        }}
+                        className="group border hover:border-orange-500 hover:shadow-md p-3.5 transition-all flex flex-col items-center text-center cursor-pointer shadow-2xs"
+                      >
+                        <div 
+                          style={{ borderRadius: `${innerImageRadius}px` }}
+                          className="w-14 h-14 bg-slate-50 p-1.5 mb-2 group-hover:scale-105 transition-transform overflow-hidden flex items-center justify-center border border-slate-100"
+                        >
+                          <img
+                            src={cat.image}
+                            alt={cat.name}
+                            style={{ borderRadius: `${Math.max(0, innerImageRadius - 2)}px` }}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <h4 className="text-xs font-bold text-slate-800 group-hover:text-orange-600 transition-colors leading-tight line-clamp-2">
+                          {cat.name}
+                        </h4>
+                        {showItemCount && (
+                          <span className="text-[10px] text-slate-400 mt-1 font-medium">
+                            {count} {count === 1 ? 'item' : 'items'}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* 8. TRUST BADGES */}
         {widget.type === 'trust_badges' && (
@@ -1229,35 +1458,12 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
           </div>
         )}
 
-        {/* 11. BRAND LOGOS / CLIENT LOGOS */}
-        {(widget.type === 'brand_logos' || widget.type === 'client_logos') && (
-          <div className="space-y-3">
-            {widget.content.text && (
-              <h4 className="text-xs font-black uppercase tracking-wider text-slate-400 text-center">
-                {widget.content.text}
-              </h4>
-            )}
-            <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 items-center justify-items-center opacity-85 hover:opacity-100 transition py-2">
-              <div className="h-10 px-4 flex items-center justify-center bg-white rounded-lg border border-slate-200 shadow-xs w-full">
-                <span className="font-black text-sm tracking-tight text-blue-700">HP OFFICIAL</span>
-              </div>
-              <div className="h-10 px-4 flex items-center justify-center bg-white rounded-lg border border-slate-200 shadow-xs w-full">
-                <span className="font-black text-sm tracking-tight text-red-600">SHARP COPIERS</span>
-              </div>
-              <div className="h-10 px-4 flex items-center justify-center bg-white rounded-lg border border-slate-200 shadow-xs w-full">
-                <span className="font-black text-sm tracking-tight text-red-700">CANON</span>
-              </div>
-              <div className="h-10 px-4 flex items-center justify-center bg-white rounded-lg border border-slate-200 shadow-xs w-full">
-                <span className="font-black text-sm tracking-tight text-indigo-700">EPSON</span>
-              </div>
-              <div className="h-10 px-4 flex items-center justify-center bg-white rounded-lg border border-slate-200 shadow-xs w-full">
-                <span className="font-black text-sm tracking-tight text-slate-800">COMIX</span>
-              </div>
-              <div className="h-10 px-4 flex items-center justify-center bg-white rounded-lg border border-slate-200 shadow-xs w-full">
-                <span className="font-black text-sm tracking-tight text-emerald-600">APC UPS</span>
-              </div>
-            </div>
-          </div>
+        {/* 11. BRAND LOGOS / CLIENT LOGOS / LOGO SLIDER */}
+        {(widget.type === 'brand_logos' || widget.type === 'client_logos' || widget.type === 'logo_slider') && (
+          <CMSLogoSliderWidget
+            widget={widget}
+            isBuilderMode={isBuilderMode}
+          />
         )}
 
         {/* 12. TESTIMONIALS */}
@@ -1413,7 +1619,7 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
         }
       }}
       style={sectionBgStyle}
-      className={`relative transition-all ${sectionHideClasses} ${section.settings.cssClasses || ''} ${
+      className={`relative transition-all ${isImageBannerSection ? 'max-md:!min-h-0' : ''} ${sectionHideClasses} ${section.settings.cssClasses || ''} ${
         isSectionSelected
           ? 'ring-2 ring-orange-500 z-10'
           : isBuilderMode
@@ -1536,30 +1742,26 @@ export const CMSSectionRenderer: React.FC<CMSSectionRendererProps> = ({
       {/* Section Container Content */}
       <div 
         style={{
-          maxWidth: widthMode === 'boxed'
-            ? (section.settings.contentMaxWidth || section.settings.maxWidth || '1320px')
-            : widthMode === 'custom'
-            ? (section.settings.customWidth || section.settings.contentMaxWidth || section.settings.maxWidth || '1320px')
-            : undefined,
-          marginLeft: (widthMode === 'boxed' || widthMode === 'custom') ? 'auto' : undefined,
-          marginRight: (widthMode === 'boxed' || widthMode === 'custom') ? 'auto' : undefined,
+          maxWidth: (widthMode === 'custom' && section.settings.customWidth && section.settings.customWidth !== '1320px')
+            ? section.settings.customWidth
+            : (section.settings.contentMaxWidth && section.settings.contentMaxWidth !== '1320px')
+            ? section.settings.contentMaxWidth
+            : '100%',
+          marginLeft: 'auto',
+          marginRight: 'auto',
           paddingLeft: widthMode === 'full-bleed' 
             ? '0px' 
-            : (!isSectionBoxed && sectionPl !== undefined ? `${sectionPl}px` : undefined),
+            : sectionPl !== undefined ? `${sectionPl}px` : undefined,
           paddingRight: widthMode === 'full-bleed' 
             ? '0px' 
-            : (!isSectionBoxed && sectionPr !== undefined ? `${sectionPr}px` : undefined),
+            : sectionPr !== undefined ? `${sectionPr}px` : undefined,
         }}
-        className={`relative z-10 ${
+        className={`relative z-10 w-full ${
           widthMode === 'full-bleed'
-            ? 'w-full px-0'
-            : widthMode === 'full-width'
-            ? 'w-full px-4 sm:px-6 md:px-8'
-            : isSectionBoxed
-              ? 'w-full'
-              : (sectionPl === undefined || sectionPr === undefined)
-                ? 'w-full px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12'
-                : 'w-full'
+            ? 'px-0'
+            : (sectionPl === undefined || sectionPr === undefined)
+              ? 'px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12'
+              : ''
         }`}
       >
         <div className={getSectionLayoutClass()}>

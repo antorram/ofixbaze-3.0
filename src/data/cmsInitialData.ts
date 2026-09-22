@@ -504,14 +504,13 @@ export const INITIAL_CMS_SECTIONS_HOMEPAGE: CMSSection[] = [
     settings: {
       layout: 'full-width',
       paddingTop: 0,
-      paddingBottom: 0,
-      minHeight: '480px'
+      paddingBottom: 0
     },
     widgets: [
       {
         id: 'w-hero-slider',
-        type: 'hero_banner',
-        title: 'Executive Hero Banner Carousel',
+        type: 'banner_slider',
+        title: 'Executive Hero Slider & Banners',
         content: {
           badge: "NIGERIA'S TRUSTED CORPORATE PROCUREMENT PARTNER",
           text: 'PREMIUM OFFICE EQUIPMENT. BUILT FOR BUSINESS.',
@@ -520,14 +519,58 @@ export const INITIAL_CMS_SECTIONS_HOMEPAGE: CMSSection[] = [
           buttonUrl: '/rfq',
           secondaryBtnText: 'EXPLORE CATALOGUE',
           secondaryBtnUrl: '/shop',
-          imageUrl: '/public/executive-tables-banner.jpg'
+          imageUrl: '/executive-tables-banner.jpg',
+          items: [
+            {
+              id: 'slide-1',
+              title: 'EXECUTIVE TABLES',
+              badge: 'PREMIUM',
+              description: 'SUPERIOR CRAFTSMANSHIP. UNCOMPROMISED ELEGANCE.',
+              subtext: 'THE ULTIMATE WORKSPACE FOR LEADERS & VISIONARIES.',
+              buttonText: 'REQUEST EXECUTIVE QUOTE',
+              buttonUrl: '/rfq',
+              secondaryBtnText: 'EXPLORE ALL DESKS & TABLES',
+              secondaryBtnUrl: '/shop',
+              image: '/executive-tables-banner.jpg',
+              deliveryText: 'Same-Day Lagos White-Glove Assembled Delivery Available'
+            },
+            {
+              id: 'slide-2',
+              title: 'EXECUTIVE CEO CHAIRS',
+              badge: 'PREMIUM',
+              description: 'LUXURY ERGONOMIC LEATHER. UNCOMPROMISED COMFORT.',
+              subtext: 'DESIGNED FOR BOARDROOM LEADERS & TIRELESS EXECUTIVES.',
+              buttonText: 'REQUEST CORPORATE QUOTE',
+              buttonUrl: '/rfq',
+              secondaryBtnText: 'EXPLORE EXECUTIVE SEATING',
+              secondaryBtnUrl: '/shop',
+              image: '/ceo-chairs-banner.jpg',
+              deliveryText: 'Ready for Immediate Dispatch — Stamped OEM Certificate Included'
+            },
+            {
+              id: 'slide-3',
+              title: 'VISITOR & CONFERENCE CHAIRS',
+              badge: 'PREMIUM',
+              description: 'PRESTIGE GUEST COMFORT FOR BOARDROOMS & RECEPTIONS.',
+              subtext: 'COMMAND RESPECT FROM THE FIRST MOMENT CLIENTS ENTER.',
+              buttonText: 'REQUEST BULK QUOTE',
+              buttonUrl: '/rfq',
+              secondaryBtnText: 'BROWSE VISITOR COLLECTION',
+              secondaryBtnUrl: '/shop',
+              image: '/visitor-chairs-banner.jpg',
+              deliveryText: 'Bulk Quantity In Stock — Guaranteed Next-Day Lagos Setup'
+            }
+          ]
         },
         settings: {
-          textColor: '#ffffff',
-          bgColor: '#0f172a',
-          paddingTop: 48,
-          paddingBottom: 48,
-          animation: 'fade'
+          sliderSource: 'homepage-hero',
+          sliderAutoplay: true,
+          sliderInterval: 6000,
+          sliderShowArrows: true,
+          sliderShowDots: true,
+          sliderHeight: '520px',
+          paddingTop: 0,
+          paddingBottom: 0
         }
       }
     ]
@@ -583,7 +626,11 @@ export const INITIAL_CMS_SECTIONS_HOMEPAGE: CMSSection[] = [
         },
         settings: {
           columnsCount: 6,
-          animation: 'fade-up'
+          animation: 'fade-up',
+          textAlign: 'center',
+          borderRadius: 12,
+          categoryCardBorderRadius: 12,
+          showItemCount: true
         }
       }
     ]
@@ -610,7 +657,8 @@ export const INITIAL_CMS_SECTIONS_HOMEPAGE: CMSSection[] = [
         settings: {
           columnsCount: 4,
           productsLimit: 8,
-          animation: 'fade-up'
+          animation: 'fade-up',
+          textAlign: 'center'
         }
       }
     ]
@@ -620,11 +668,10 @@ export const INITIAL_CMS_SECTIONS_HOMEPAGE: CMSSection[] = [
     name: 'Corporate RFQ Procurement Banner',
     enabled: true,
     settings: {
-      layout: 'boxed',
+      layout: 'full-width',
       paddingTop: 40,
       paddingBottom: 40,
-      bgColor: '#1e293b',
-      borderRadius: 16
+      bgColor: '#1e293b'
     },
     widgets: [
       {
@@ -811,12 +858,11 @@ export const INITIAL_CMS_TEMPLATES: CMSTemplate[] = [
       name: 'Executive Luxury Suite',
       enabled: true,
       settings: {
-        layout: 'boxed',
+        layout: 'full-width',
         bgColor: '#0f172a',
         textColor: '#ffffff',
         paddingTop: 48,
-        paddingBottom: 48,
-        borderRadius: 16
+        paddingBottom: 48
       },
       widgets: [
         {
@@ -880,12 +926,11 @@ export const INITIAL_CMS_TEMPLATES: CMSTemplate[] = [
       name: 'Corporate RFQ Banner',
       enabled: true,
       settings: {
-        layout: 'boxed',
+        layout: 'full-width',
         bgColor: '#ea580c',
         textColor: '#ffffff',
         paddingTop: 40,
-        paddingBottom: 40,
-        borderRadius: 16
+        paddingBottom: 40
       },
       widgets: [
         {

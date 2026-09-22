@@ -171,7 +171,7 @@ export const DEFAULT_CUSTOMIZER_CONFIG: SiteCustomizerConfig = {
   navMenu: DEFAULT_NAV_MENU,
   announcement: {
     enabled: true,
-    text: '⚡ Free Nationwide Delivery on Corporate Bulk Orders Over ₦2,000,000 | 100% Genuine OEM Warranty Guaranteed',
+    text: '⚡ Free Nationwide Delivery on Corporate Bulk Orders | 100% Genuine OEM Warranty Guaranteed',
     bgColor: '#0f172a',
     textColor: '#f8fafc',
   },

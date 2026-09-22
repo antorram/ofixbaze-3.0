@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { X, ShoppingCart, Heart, ShieldCheck, Check, Star, ArrowRight, FileText } from 'lucide-react';
 import { Product, Currency } from '../types';
-import { formatPrice } from '../utils/currency';
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -125,25 +124,13 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
               </div>
 
               {/* Price / Quote Status */}
-              <div className="flex items-center justify-between gap-2.5 mt-3 py-2.5 px-3 bg-slate-50 rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between gap-2.5 mt-3 py-2.5 px-3 bg-gradient-to-r from-orange-50/70 to-slate-50 rounded-xl border border-orange-200/60">
                 <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-base sm:text-lg font-black text-slate-900">
-                      {formatPrice(product.priceNGN, currency)}
-                    </span>
-                    {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
-                      <span className="text-xs text-slate-400 line-through">
-                        {formatPrice(product.originalPriceNGN, currency)}
-                      </span>
-                    )}
+                  <span className="text-[10px] font-extrabold uppercase text-orange-600 block">Pricing</span>
+                  <div className="text-base sm:text-lg font-black text-slate-900">
+                    Price on Request
                   </div>
-                  {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN ? (
-                    <div className="text-[10px] font-bold text-emerald-700">
-                      Save {Math.round(((product.originalPriceNGN - product.priceNGN) / product.originalPriceNGN) * 100)}% off retail
-                    </div>
-                  ) : (
-                    <div className="text-[11px] text-slate-500">Official OEM Warranty • Instant Dispatch</div>
-                  )}
+                  <div className="text-[11px] text-slate-500">Official OEM Warranty • Instant Proforma Quote</div>
                 </div>
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
                   product.inStock 
@@ -207,7 +194,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   ) : (
                     <>
                       <ShoppingCart className="w-4 h-4 text-orange-400" />
-                      <span>Add to Cart {quantity > 1 ? `(${formatPrice(product.priceNGN * quantity, currency)})` : ''}</span>
+                      <span>Add to Quote Cart {quantity > 1 ? `(${quantity} Units)` : ''}</span>
                     </>
                   )}
                 </button>

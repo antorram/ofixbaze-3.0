@@ -108,6 +108,7 @@ export const HomePage: React.FC<HomePageProps> = ({
               onSelectProduct={onSelectProduct}
               onAddToCart={onAddToCart}
               onOpenAuthenticityModal={onOpenAuthenticityModal}
+              slides={slides}
             />
           ))}
       </div>

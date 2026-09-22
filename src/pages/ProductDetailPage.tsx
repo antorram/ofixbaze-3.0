@@ -19,7 +19,6 @@ import { Product, Currency, ActivePage } from '../types';
 import { PRODUCTS } from '../data/products';
 import { CATEGORIES } from '../data/categories';
 import { ProductCard } from '../components/ProductCard';
-import { formatPrice } from '../utils/currency';
 
 interface ProductDetailPageProps {
   product: Product;
@@ -294,34 +293,35 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             </div>
           </div>
 
-          {/* Ecommerce Price & Offer Box */}
-          <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/80">
-            <div className="flex flex-wrap items-baseline gap-3">
-              <span className="text-2xl sm:text-3xl font-black text-slate-900">
-                {formatPrice(product.priceNGN, currency)}
-              </span>
-              {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm sm:text-base text-slate-400 line-through">
-                    {formatPrice(product.originalPriceNGN, currency)}
-                  </span>
-                  <span className="text-xs font-black text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-md border border-emerald-300">
-                    SAVE {Math.round(((product.originalPriceNGN - product.priceNGN) / product.originalPriceNGN) * 100)}%
-                  </span>
-                </div>
-              )}
+          {/* Corporate Quotation Pricing Box */}
+          <div className="p-4 sm:p-5 bg-gradient-to-r from-orange-50/70 via-slate-50 to-orange-50/30 rounded-2xl border border-orange-200/80">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <span className="text-xs uppercase font-extrabold tracking-wider text-orange-600 block mb-0.5">
+                  Pricing Status
+                </span>
+                <span className="text-2xl sm:text-3xl font-black text-slate-900 flex items-center gap-2">
+                  Price on Request
+                </span>
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-orange-200 rounded-full text-xs font-bold text-slate-700 shadow-2xs">
+                  <FileText className="w-3.5 h-3.5 text-orange-500" />
+                  Instant RFQ Available
+                </span>
+              </div>
             </div>
             
-            <div className="flex flex-wrap items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-200/60 text-xs text-slate-500">
+            <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-2.5 border-t border-slate-200/60 text-xs text-slate-500">
               <span className="flex items-center gap-1 text-slate-600 font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Price includes applicable sales tax &amp; VAT</span>
+                <span>Official Nigerian VAT &amp; WHT stamped invoice provided</span>
               </span>
               <button
                 onClick={() => setActivePage('rfq')}
-                className="text-blue-700 hover:text-blue-900 font-semibold underline cursor-pointer"
+                className="text-orange-600 hover:text-orange-700 font-bold underline cursor-pointer"
               >
-                Need Corporate Bulk Proforma?
+                Request Custom Bulk Tender
               </button>
             </div>
           </div>
@@ -386,7 +386,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 ) : (
                   <>
                     <ShoppingCart className="w-4 h-4 text-orange-400" />
-                    <span>Add to Cart {quantity > 1 ? `(${formatPrice(product.priceNGN * quantity, currency)})` : ''}</span>
+                    <span>Add to Quote Cart {quantity > 1 ? `(${quantity} Units)` : ''}</span>
                   </>
                 )}
               </button>

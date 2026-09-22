@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Heart, Eye, Check, Star, ShieldCheck, Zap } from 'lucide-react';
+import { ShoppingCart, Heart, Eye, Check, Star, ShieldCheck, FileText } from 'lucide-react';
 import { Product, Currency } from '../types';
-import { formatPrice } from '../utils/currency';
 
 export interface MarketplaceProductCardProps {
   product: Product;
@@ -22,7 +21,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
   isWishlisted,
   onQuickView,
   onSelectProduct,
-  compact = false,
+  compact = false
 }) => {
   const [isAdded, setIsAdded] = useState(false);
 
@@ -30,7 +29,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
     e.stopPropagation();
     onAddToCart(product, 1);
     setIsAdded(true);
-    setTimeout(() => setIsAdded(false), 2000);
+    setTimeout(() => setIsAdded(false), 1500);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -42,10 +41,6 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
     e.stopPropagation();
     onQuickView(product);
   };
-
-  const discountPercent = product.originalPriceNGN && product.originalPriceNGN > product.priceNGN
-    ? Math.round(((product.originalPriceNGN - product.priceNGN) / product.originalPriceNGN) * 100)
-    : 0;
 
   return (
     <div
@@ -65,21 +60,15 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
           }}
         />
 
-        {/* Badges: Discount & OEM */}
+        {/* Badges: OEM & Features */}
         <div className="absolute top-2 left-2 flex flex-col gap-1 items-start z-10">
-          {discountPercent > 0 && (
-            <span className="bg-rose-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-xs tracking-tight flex items-center gap-0.5">
-              <Zap className="w-2.5 h-2.5 fill-white" />
-              -{discountPercent}%
-            </span>
-          )}
           {product.isOriginalOEM && (
             <span className="inline-flex items-center gap-0.5 bg-emerald-50 text-emerald-800 text-[9px] font-bold px-1.5 py-0.5 rounded border border-emerald-300 shadow-2xs">
               <ShieldCheck className="w-2.5 h-2.5 text-emerald-600" />
               OEM
             </span>
           )}
-          {product.badge && !discountPercent && (
+          {product.badge && (
             <span className="bg-orange-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase">
               {product.badge}
             </span>
@@ -145,21 +134,17 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
           <span className="text-[10px] font-medium text-slate-500">({product.reviewsCount})</span>
         </div>
 
-        {/* Price Hierarchy */}
-        <div className="mt-2 pt-2 border-t border-slate-100">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
-              {formatPrice(product.priceNGN, currency)}
-            </span>
-            {product.originalPriceNGN && product.originalPriceNGN > product.priceNGN && (
-              <span className="text-[11px] text-slate-400 line-through font-medium">
-                {formatPrice(product.originalPriceNGN, currency)}
-              </span>
-            )}
-          </div>
+        {/* Price on Request / RFQ status */}
+        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+          <span className="text-xs font-black text-orange-600 tracking-tight uppercase">
+            Price on Request
+          </span>
+          <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+            RFQ
+          </span>
         </div>
 
-        {/* Add to Cart CTA */}
+        {/* Add to Quote CTA */}
         <div className="mt-auto pt-2.5">
           <button
             onClick={handleAdd}
@@ -178,7 +163,7 @@ export const MarketplaceProductCard: React.FC<MarketplaceProductCardProps> = ({
             ) : (
               <>
                 <ShoppingCart className="w-3.5 h-3.5 text-orange-400 group-hover:text-white transition-colors" />
-                <span>Add to Cart</span>
+                <span>Add to Quote</span>
               </>
             )}
           </button>

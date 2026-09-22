@@ -750,8 +750,8 @@ export const ProductFormModal: React.FC<ProductFormModalProps> = ({
                     </div>
                     <span>Rating: 4.9 · 12 reviews</span>
                     <span>·</span>
-                    <span className="font-semibold text-slate-800">
-                      ₦{Number(formData.priceNGN || 0).toLocaleString()}
+                    <span className="font-semibold text-orange-600">
+                      Price on Request
                     </span>
                     <span>·</span>
                     <span className="text-emerald-700 font-medium">In stock</span>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { CMSPage, Product, Category, Currency, ActivePage } from '../types';
+import { SlideConfig } from '../data/adminData';
 import { CMSSectionRenderer } from './CMSSectionRenderer';
 
 interface CMSPageRendererProps {
@@ -15,6 +16,7 @@ interface CMSPageRendererProps {
   wishlistIds?: string[];
   onQuickView?: (product: Product) => void;
   onOpenAuthenticityModal?: () => void;
+  slides?: SlideConfig[];
 }
 
 export const CMSPageRenderer: React.FC<CMSPageRendererProps> = ({
@@ -29,7 +31,8 @@ export const CMSPageRenderer: React.FC<CMSPageRendererProps> = ({
   onToggleWishlist,
   wishlistIds = [],
   onQuickView,
-  onOpenAuthenticityModal
+  onOpenAuthenticityModal,
+  slides
 }) => {
   return (
     <div className="w-full min-h-screen bg-slate-50">
@@ -51,6 +54,7 @@ export const CMSPageRenderer: React.FC<CMSPageRendererProps> = ({
               wishlistIds={wishlistIds}
               onQuickView={onQuickView}
               onOpenAuthenticityModal={onOpenAuthenticityModal}
+              slides={slides}
             />
           ))
       ) : (

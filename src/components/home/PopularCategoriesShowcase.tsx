@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowRight, Monitor, Tv, Wrench, Printer, ChevronRight, Check } from 'lucide-react';
 import { Product, Currency, ActivePage } from '../../types';
-import { formatPrice } from '../../utils/currency';
 
 interface PopularCategoriesShowcaseProps {
   products: Product[];
@@ -161,9 +160,9 @@ export const PopularCategoriesShowcase: React.FC<PopularCategoriesShowcaseProps>
                       {product.name}
                     </h5>
 
-                    {/* Price in Bold Red matching image */}
-                    <div className="text-sm font-black text-[#dc2626] mb-1">
-                      {formatPrice(product.priceNGN, currency)}
+                    {/* Price Status */}
+                    <div className="text-xs font-black text-orange-600 uppercase tracking-tight mb-1">
+                      Price on Request
                     </div>
 
                     {/* Stock status */}

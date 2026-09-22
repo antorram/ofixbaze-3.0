@@ -109,10 +109,6 @@ export const Footer: React.FC<FooterProps> = ({
                 />
               </div>
             </div>
-            
-            <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-              Ofixbaze Nigeria Limited was established with an ideal mind of being the most reliable and trusted company providing efficient service deliveries in IT products, genuine HP toners, and executive office furniture across Nigeria.
-            </p>
 
             <div className="space-y-2 text-xs text-slate-300 pt-2">
               <div className="flex items-start gap-2.5">

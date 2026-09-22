@@ -811,7 +811,7 @@ export default function App() {
       />
 
       {/* Main Page Body */}
-      <main className="flex-1">
+      <main className="flex-1 w-full">
         {activePage === 'home' && (
           <HomePage
             setActivePage={setActivePage}
@@ -934,6 +934,7 @@ export default function App() {
                   onSelectProduct={handleSelectProduct}
                   onSelectCategory={(slug) => handleSelectCategoryAndKeyword(slug, '')}
                   onOpenAuthenticityModal={() => setIsAuthenticityModalOpen(true)}
+                  slides={slides}
                 />
               );
             }

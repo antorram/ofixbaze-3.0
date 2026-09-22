@@ -580,8 +580,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           currency={currency}
           mediaItems={mediaItems}
           onUploadMedia={handleAddMedia}
+          onAddCategory={onAddCategory}
           setActivePage={setActivePage}
           onExitBuilder={() => setCurrentTab('pages')}
+          slides={slides}
         />
       </div>
     );

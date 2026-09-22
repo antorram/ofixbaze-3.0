@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Trash2, ShoppingBag, ArrowRight, ShieldCheck, Plus, Minus, FileText, ShoppingCart } from 'lucide-react';
 import { CartItem, Currency, ActivePage } from '../types';
-import { formatPrice } from '../utils/currency';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -139,16 +138,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         </button>
                       </div>
 
-                      {/* Item Price */}
+                      {/* Item Status */}
                       <div className="text-right">
-                        <span className="text-xs font-black text-slate-900">
-                          {formatPrice(product.priceNGN * quantity, currency)}
+                        <span className="text-xs font-black text-orange-600 uppercase">
+                          Price on Request
                         </span>
-                        {quantity > 1 && (
-                          <div className="text-[10px] text-slate-400">
-                            {formatPrice(product.priceNGN, currency)} each
-                          </div>
-                        )}
+                        <div className="text-[10px] text-slate-400">
+                          {quantity} {quantity === 1 ? 'unit' : 'units'}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -162,15 +159,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             <div className="p-4 border-t border-slate-200 bg-slate-50 space-y-3">
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between text-slate-600">
-                  <span>Subtotal</span>
+                  <span>Selected Products</span>
                   <span className="font-bold text-slate-900 text-sm">
-                    {formatPrice(subtotalNGN, currency)}
+                    {totalQuantity} {totalQuantity === 1 ? 'Unit' : 'Units'}
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-500 text-[11px]">
-                  <span>Delivery in Lagos</span>
-                  <span className="font-medium text-emerald-700">
-                    {subtotalNGN >= 300000 ? 'FREE' : 'Calculated at Checkout'}
+                  <span>Quote Status</span>
+                  <span className="font-bold text-orange-600">
+                    Official Proforma RFQ
                   </span>
                 </div>
                 <div className="flex justify-between text-slate-500 text-[11px]">

@@ -57,7 +57,11 @@ import {
   Menu,
   Footprints,
   Code2,
-  FileCheck
+  FileCheck,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  AlignJustify
 } from 'lucide-react';
 import { 
   CMSPage, 
@@ -77,6 +81,8 @@ import {
 import { MediaPickerModal } from './MediaPickerModal';
 import { INITIAL_CMS_TEMPLATES } from '../../data/cmsInitialData';
 import { CMSSectionRenderer } from '../CMSSectionRenderer';
+import { isProductInCategory } from '../../utils/categoryMatcher';
+import { SlideConfig, INITIAL_SLIDES_CONFIG } from '../../data/adminData';
 
 interface AdminPageBuilderTabProps {
   pages: CMSPage[];
@@ -87,8 +93,10 @@ interface AdminPageBuilderTabProps {
   currency: Currency;
   mediaItems: CMSMediaItem[];
   onUploadMedia: (item: CMSMediaItem) => void;
+  onAddCategory?: (category: Category) => void;
   setActivePage: (page: ActivePage) => void;
   onExitBuilder: () => void;
+  slides?: SlideConfig[];
 }
 
 // Widget definition for Left Sidebar
@@ -98,12 +106,14 @@ interface WidgetPaletteItem {
   category: 'content' | 'layout' | 'ecommerce' | 'corporate' | 'media' | 'advanced';
   description: string;
   icon: any;
+  keywords?: string[];
 }
 
 const WIDGET_PALETTE: WidgetPaletteItem[] = [
   // 1. CONTENT
   { type: 'heading', label: 'Heading', category: 'content', description: 'H1-H6 titles with badges and subtexts', icon: Type },
   { type: 'text', label: 'Text Block', category: 'content', description: 'Paragraphs, body copy, and specifications', icon: FileText },
+  { type: 'banner_slider', label: 'Hero Slider / Carousel', category: 'content', description: 'Homepage rotating hero banner carousel with CTA buttons & guarantee badges', icon: Layout, keywords: ['slider', 'hero', 'banner', 'carousel', 'slideshow', 'homepage', 'slides'] },
   { type: 'rich_text', label: 'Rich Text', category: 'content', description: 'Formatted descriptive prose and articles', icon: FileText },
   { type: 'button', label: 'Call to Action Button', category: 'content', description: 'Buttons with links, styling, and icons', icon: Square },
   { type: 'icon_box', label: 'Icon Feature Box', category: 'content', description: 'Feature icons with titles and explanations', icon: Sparkles },
@@ -120,7 +130,7 @@ const WIDGET_PALETTE: WidgetPaletteItem[] = [
 
   // 3. ECOMMERCE
   { type: 'product_grid', label: 'Product Grid', category: 'ecommerce', description: 'Dynamic catalog filtered by category or brand', icon: ShoppingBag },
-  { type: 'product_carousel', label: 'Product Carousel', category: 'ecommerce', description: 'Horizontal scrollable product slider', icon: ShoppingBag },
+  { type: 'product_carousel', label: 'Product Slider / Carousel', category: 'ecommerce', description: 'Interactive rotating product carousel with categories, arrows & autoplay', icon: ShoppingBag, keywords: ['product slider', 'product carousel', 'product', 'slider', 'carousel', 'products', 'deals', 'featured slider'] },
   { type: 'featured_products', label: 'Featured Products', category: 'ecommerce', description: 'Handpicked VIP and flagship equipment', icon: Star },
   { type: 'latest_products', label: 'New Arrivals', category: 'ecommerce', description: 'Latest toner batches and fresh imports', icon: Flame },
   { type: 'bestseller_products', label: 'Bestsellers', category: 'ecommerce', description: 'Top volume corporate toner cartridges', icon: Tag },
@@ -136,11 +146,12 @@ const WIDGET_PALETTE: WidgetPaletteItem[] = [
   { type: 'announcement_bar', label: 'Announcement Bar', category: 'corporate', description: 'Top promo notice strip with urgency tag', icon: Sparkles },
 
   // 5. MEDIA
+  { type: 'banner_slider', label: 'Hero / Banner Slider', category: 'media', description: 'Multi-slide rotating promotional showcase with buttons & badges', icon: Layout, keywords: ['slider', 'hero', 'banner', 'carousel', 'slideshow', 'homepage', 'slides'] },
+  { type: 'image_slider', label: 'Image Slider / Carousel', category: 'media', description: 'Multi-photo rotating slideshow with navigation chevrons, dots & auto-rotation', icon: ImageIcon, keywords: ['image slider', 'photo slider', 'carousel', 'slideshow', 'gallery slider', 'image carousel', 'slider', 'image', 'photos'] },
+  { type: 'brand_logos', label: 'Logo Slider / Brand Marquee', category: 'media', description: 'Smooth continuous marquee ticker or interactive carousel of partner logos', icon: Globe, keywords: ['logo slider', 'brand slider', 'logo', 'brands', 'brand carousel', 'marquee', 'ticker', 'slider', 'partner logos', 'client logos'] },
   { type: 'image', label: 'Single Image', category: 'media', description: 'Full width, responsive aspect ratio image', icon: ImageIcon },
   { type: 'image_gallery', label: 'Image Gallery', category: 'media', description: 'Multi-image grid showroom showcase', icon: Grid },
   { type: 'video', label: 'Video Player', category: 'media', description: 'Product and corporate showroom videos', icon: Video },
-  { type: 'banner_slider', label: 'Banner Slider', category: 'media', description: 'Multi-slide rotating promotional showcase', icon: Layout },
-  { type: 'brand_logos', label: 'Brand Logos Strip', category: 'media', description: 'HP, Canon, Sharp, Epson partner logos', icon: Globe },
   { type: 'hero_banner', label: 'Hero Banner', category: 'media', description: 'Headline, subtext, dual CTAs & image overlay', icon: Wand2 },
 
   // 6. ADVANCED
@@ -158,8 +169,10 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
   currency,
   mediaItems,
   onUploadMedia,
+  onAddCategory,
   setActivePage,
-  onExitBuilder
+  onExitBuilder,
+  slides = INITIAL_SLIDES_CONFIG
 }) => {
   const [selectedPageId, setSelectedPageId] = useState<string>(initialPageId);
   const activePage = pages.find(p => p.id === selectedPageId) || pages[0];
@@ -176,6 +189,12 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
   // Selected element tracking
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [selectedWidgetId, setSelectedWidgetId] = useState<string | null>(null);
+
+  // Category Grid inspector local states
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+  const [isAddingNewCatInline, setIsAddingNewCatInline] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatImage, setNewCatImage] = useState('');
 
   // Left sidebar tabs & state
   const [leftTab, setLeftTab] = useState<'widgets' | 'navigator' | 'templates'>('widgets');
@@ -206,7 +225,8 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
 
   // Media Picker Modal
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
-  const [mediaTargetField, setMediaTargetField] = useState<'widget-image' | 'section-bg'>('widget-image');
+  const [mediaTargetField, setMediaTargetField] = useState<'widget-image' | 'section-bg' | 'widget-slide-image'>('widget-image');
+  const [selectedSlideIndexForMedia, setSelectedSlideIndexForMedia] = useState<number | null>(null);
 
   // Revisions Modal
   const [isRevisionsOpen, setIsRevisionsOpen] = useState(false);
@@ -386,7 +406,8 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
       name: `Section ${sections.length + 1}`,
       enabled: true,
       settings: {
-        layout: 'boxed',
+        layout: 'full-width',
+        contentMaxWidth: '100%',
         paddingTop: 48,
         paddingBottom: 48,
         columnsPreset: preset || '1-col',
@@ -490,7 +511,7 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
             imageUrl: '/public/executive-tables-banner.jpg',
             altText: 'Executive Tables and Desks Showcase'
           },
-          settings: { borderRadius: 12, minHeight: '400px', objectFit: 'cover' }
+          settings: { borderRadius: 12, objectFit: 'cover', imageHeightMode: 'auto' }
         };
         break;
 
@@ -519,6 +540,75 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
         };
         break;
 
+      case 'banner_slider':
+      case 'hero_slider':
+        newWidget = {
+          id: newWidgetId,
+          type: 'banner_slider',
+          title: 'Hero Slider & Banners',
+          content: {
+            badge: "NIGERIA'S TRUSTED CORPORATE PROCUREMENT PARTNER",
+            text: 'PREMIUM OFFICE EQUIPMENT. BUILT FOR BUSINESS.',
+            subtext: 'Supply your workplace with genuine OEM toners, executive furniture, printers, and document machines with official warranty and fast Lagos delivery.',
+            buttonText: 'REQUEST CORPORATE QUOTE',
+            buttonUrl: '/rfq',
+            secondaryBtnText: 'EXPLORE CATALOGUE',
+            secondaryBtnUrl: '/shop',
+            imageUrl: '/executive-tables-banner.jpg',
+            items: [
+              {
+                id: 'slide-1',
+                title: 'EXECUTIVE TABLES',
+                badge: 'PREMIUM',
+                description: 'SUPERIOR CRAFTSMANSHIP. UNCOMPROMISED ELEGANCE.',
+                subtext: 'THE ULTIMATE WORKSPACE FOR LEADERS & VISIONARIES.',
+                buttonText: 'REQUEST EXECUTIVE QUOTE',
+                buttonUrl: '/rfq',
+                secondaryBtnText: 'EXPLORE ALL DESKS & TABLES',
+                secondaryBtnUrl: '/shop',
+                image: '/executive-tables-banner.jpg',
+                deliveryText: 'Same-Day Lagos White-Glove Assembled Delivery Available'
+              },
+              {
+                id: 'slide-2',
+                title: 'EXECUTIVE CEO CHAIRS',
+                badge: 'PREMIUM',
+                description: 'LUXURY ERGONOMIC LEATHER. UNCOMPROMISED COMFORT.',
+                subtext: 'DESIGNED FOR BOARDROOM LEADERS & TIRELESS EXECUTIVES.',
+                buttonText: 'REQUEST CORPORATE QUOTE',
+                buttonUrl: '/rfq',
+                secondaryBtnText: 'EXPLORE EXECUTIVE SEATING',
+                secondaryBtnUrl: '/shop',
+                image: '/ceo-chairs-banner.jpg',
+                deliveryText: 'Ready for Immediate Dispatch — Stamped OEM Certificate Included'
+              },
+              {
+                id: 'slide-3',
+                title: 'VISITOR & CONFERENCE CHAIRS',
+                badge: 'PREMIUM',
+                description: 'PRESTIGE GUEST COMFORT FOR BOARDROOMS & RECEPTIONS.',
+                subtext: 'COMMAND RESPECT FROM THE FIRST MOMENT CLIENTS ENTER.',
+                buttonText: 'REQUEST BULK QUOTE',
+                buttonUrl: '/rfq',
+                secondaryBtnText: 'BROWSE VISITOR COLLECTION',
+                secondaryBtnUrl: '/shop',
+                image: '/visitor-chairs-banner.jpg',
+                deliveryText: 'Bulk Quantity In Stock — Guaranteed Next-Day Lagos Setup'
+              }
+            ]
+          },
+          settings: {
+            sliderSource: 'homepage-hero',
+            sliderAutoplay: true,
+            sliderInterval: 6000,
+            sliderShowArrows: true,
+            sliderShowDots: true,
+            sliderHeight: '520px',
+            sliderTheme: 'modern-dark'
+          }
+        };
+        break;
+
       case 'product_grid':
       case 'featured_products':
       case 'latest_products':
@@ -537,6 +627,82 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
             productsLimit: 8,
             columnsCount: 4,
             onlyFeatured: widgetType === 'featured_products'
+          }
+        };
+        break;
+
+      case 'product_carousel':
+      case 'product_slider':
+        newWidget = {
+          id: newWidgetId,
+          type: 'product_carousel',
+          title: 'Product Slider Carousel',
+          content: {
+            badge: 'FEATURED EXECUTIVE SELECTIONS',
+            text: 'Trending Corporate Supplies & Equipment',
+            subtext: 'Official manufacturer warranty and fast Lagos delivery.'
+          },
+          settings: {
+            productCategory: 'all',
+            productsLimit: 12,
+            productSliderItemsToShow: 4,
+            productSliderAutoplay: true,
+            productSliderInterval: 5000,
+            productSliderShowArrows: true,
+            productSliderShowDots: true,
+            onlyFeatured: false,
+            onlySale: false
+          }
+        };
+        break;
+
+      case 'image_slider':
+        newWidget = {
+          id: newWidgetId,
+          type: 'image_slider',
+          title: 'Image Slider & Carousel',
+          content: {
+            badge: 'SHOWROOM SHOWCASE',
+            text: 'Modern Workplace Environments',
+            subtext: 'Explore premium installations and executive furniture arrangements.',
+            items: [
+              {
+                id: 'img-1',
+                title: 'Executive Boardroom Desks',
+                description: 'Precision Italian veneer and integrated wire management for visionary executives.',
+                badge: 'FLAGSHIP SERIES',
+                image: '/executive-tables-banner.jpg',
+                buttonText: 'EXPLORE TABLES',
+                buttonUrl: '/shop?category=executive-tables'
+              },
+              {
+                id: 'img-2',
+                title: 'Ergonomic CEO Leather Chairs',
+                description: 'High-back lumbar support engineered for 12+ hour corporate focus.',
+                badge: 'OFFICIAL OEM',
+                image: '/ceo-chairs-banner.jpg',
+                buttonText: 'DISCOVER SEATING',
+                buttonUrl: '/shop?category=executive-chairs'
+              },
+              {
+                id: 'img-3',
+                title: 'Prestige Visitor Seating',
+                description: 'Commanding client comfort for Lagos corporate reception & executive guest lobbies.',
+                badge: 'BESTSELLER',
+                image: '/visitor-chairs-banner.jpg',
+                buttonText: 'VIEW COLLECTION',
+                buttonUrl: '/shop?category=visitor-conference-chairs'
+              }
+            ]
+          },
+          settings: {
+            imageSliderAutoplay: true,
+            imageSliderInterval: 6000,
+            imageSliderHeight: '440px',
+            imageSliderBorderRadius: 16,
+            imageSliderShowArrows: true,
+            imageSliderShowDots: true,
+            imageSliderObjectFit: 'cover'
           }
         };
         break;
@@ -604,14 +770,37 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
         break;
 
       case 'brand_logos':
+      case 'client_logos':
+      case 'logo_slider':
         newWidget = {
           id: newWidgetId,
           type: 'brand_logos',
-          title: 'Authorized OEM Brands Strip',
+          title: 'OEM Brand Partners & Logo Slider',
           content: {
-            text: 'OFFICIAL CORPORATE DEALERSHIP PARTNERS'
+            badge: 'AUTHORIZED OEM PARTNERS',
+            text: 'OFFICIAL CORPORATE DEALERSHIP PARTNERS',
+            subtext: 'Direct manufacturer procurement with verified authenticity and manufacturer warranty.',
+            items: [
+              { id: 'logo-1', title: 'HP Authorized Partner', image: 'https://ofixbaze.com/wp-content/uploads/2020/04/HP-LOGO.jpg', link: '/shop?brand=hp' },
+              { id: 'logo-2', title: 'Sharp Enterprise Copiers', image: 'https://ofixbaze.com/wp-content/uploads/2020/04/SHARP-LOGO-IN-LAGOS-1.jpg', link: '/shop?brand=sharp' },
+              { id: 'logo-3', title: 'Canon Imaging Solutions', image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=300&auto=format&fit=crop&q=80', link: '/shop?brand=canon' },
+              { id: 'logo-4', title: 'Epson Precision Core', image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=300&auto=format&fit=crop&q=80', link: '/shop?brand=epson' },
+              { id: 'logo-5', title: 'Comix Stationery & Shredders', image: 'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=300&auto=format&fit=crop&q=80', link: '/shop?brand=comix' },
+              { id: 'logo-6', title: 'APC Schneider Electric UPS', image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=300&auto=format&fit=crop&q=80', link: '/shop?brand=apc' },
+              { id: 'logo-7', title: 'Nigerian Gas Company', image: 'https://ofixbaze.com/wp-content/uploads/2020/05/NIGERIAN-GAS-COMPANY-LOGO.jpg', link: '#' }
+            ]
           },
-          settings: {}
+          settings: {
+            logoSliderMode: 'marquee',
+            logoSliderSpeed: 30,
+            logoSliderGrayscale: true,
+            logoSliderPauseOnHover: true,
+            logoSliderItemsToShow: 5,
+            logoSliderShowArrows: true,
+            logoSliderShowDots: false,
+            logoSliderBorderRadius: 10,
+            logoSliderBgColor: '#ffffff'
+          }
         };
         break;
 
@@ -1030,7 +1219,10 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
     }
     if (!widgetSearch) return true;
     const q = widgetSearch.toLowerCase();
-    return w.label.toLowerCase().includes(q) || w.description.toLowerCase().includes(q) || w.category.toLowerCase().includes(q);
+    return w.label.toLowerCase().includes(q) || 
+           w.description.toLowerCase().includes(q) || 
+           w.category.toLowerCase().includes(q) ||
+           Boolean(w.keywords && w.keywords.some(k => k.toLowerCase().includes(q)));
   });
 
   const getDeviceWidthClass = () => {
@@ -1631,6 +1823,7 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                       categories={categories}
                       currency={currency}
                       setActivePage={setActivePage}
+                      slides={slides}
                       isBuilderMode={!isPreviewMode}
                       selectedSectionId={selectedSectionId}
                       selectedWidgetId={selectedWidgetId}
@@ -1830,44 +2023,138 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                   {/* TAB 1: CONTENT */}
                   {inspectorTab === 'content' && (
                     <div className="space-y-3.5">
+                      {/* Alignment & Quick Text Controls */}
+                      <div className="bg-[#181d22] p-2.5 rounded-lg border border-[#2c3338] space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-slate-300 font-bold text-xs flex items-center gap-1.5">
+                            <AlignLeft className="w-3.5 h-3.5 text-orange-400" />
+                            <span>Heading &amp; Text Alignment</span>
+                          </label>
+                          {(currentWidget.content.badge || currentWidget.content.text || currentWidget.content.subtext) && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCurrentWidget({
+                                content: {
+                                  ...currentWidget.content,
+                                  badge: '',
+                                  text: '',
+                                  subtext: ''
+                                }
+                              })}
+                              className="text-[11px] text-rose-400 hover:text-rose-300 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                              title="Clear all heading, badge, and subtitle text"
+                            >
+                              <X className="w-3 h-3" />
+                              <span>Clear All Text</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Alignment Buttons: Left, Center, Right, Justify */}
+                        <div className="grid grid-cols-4 gap-1 bg-[#13171a] p-1 rounded-lg border border-[#2c3338]">
+                          {([
+                            { id: 'left', label: 'Left', icon: AlignLeft },
+                            { id: 'center', label: 'Center', icon: AlignCenter },
+                            { id: 'right', label: 'Right', icon: AlignRight },
+                            { id: 'justify', label: 'Justify', icon: AlignJustify }
+                          ] as const).map(({ id, label, icon: Icon }) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => handleUpdateCurrentWidget({
+                                settings: { ...currentWidget.settings, textAlign: id }
+                              })}
+                              className={`py-1.5 px-2 rounded flex items-center justify-center gap-1 text-xs font-semibold transition cursor-pointer ${
+                                (currentWidget.settings.textAlign || 'left') === id
+                                  ? 'bg-orange-600 text-white shadow-xs'
+                                  : 'text-slate-400 hover:text-white hover:bg-[#252c32]'
+                              }`}
+                              title={`Align ${label}`}
+                            >
+                              <Icon className="w-3.5 h-3.5" />
+                              <span className="text-[10px]">{label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Badge / Tagline */}
                       <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Badge / Eyebrow Text</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-slate-400 font-semibold text-xs">Badge / Eyebrow Text</label>
+                          {currentWidget.content.badge && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCurrentWidget({
+                                content: { ...currentWidget.content, badge: '' }
+                              })}
+                              className="text-[10px] text-slate-500 hover:text-rose-400 cursor-pointer"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                         <input
                           type="text"
                           value={currentWidget.content.badge || ''}
                           onChange={(e) => handleUpdateCurrentWidget({
                             content: { ...currentWidget.content, badge: e.target.value }
                           })}
-                          placeholder="e.g. 100% GENUINE OEM"
+                          placeholder="e.g. 100% GENUINE OEM (Leave blank to remove)"
                           className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white focus:outline-none focus:border-orange-500 text-xs"
                         />
                       </div>
 
                       {/* Main Title / Headline */}
                       <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Main Heading / Title</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-slate-400 font-semibold text-xs">Main Heading / Title</label>
+                          {currentWidget.content.text && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCurrentWidget({
+                                content: { ...currentWidget.content, text: '' }
+                              })}
+                              className="text-[10px] text-slate-500 hover:text-rose-400 cursor-pointer"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                         <textarea
                           rows={2}
                           value={currentWidget.content.text || ''}
                           onChange={(e) => handleUpdateCurrentWidget({
                             content: { ...currentWidget.content, text: e.target.value }
                           })}
-                          placeholder="Enter headline..."
+                          placeholder="Enter headline... (Leave blank to remove)"
                           className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white focus:outline-none focus:border-orange-500 text-xs"
                         />
                       </div>
 
                       {/* Subtext / Description */}
                       <div>
-                        <label className="block text-slate-400 font-semibold mb-1">Subtext / Paragraph</label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-slate-400 font-semibold text-xs">Subtext / Paragraph</label>
+                          {currentWidget.content.subtext && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateCurrentWidget({
+                                content: { ...currentWidget.content, subtext: '' }
+                              })}
+                              className="text-[10px] text-slate-500 hover:text-rose-400 cursor-pointer"
+                            >
+                              Clear
+                            </button>
+                          )}
+                        </div>
                         <textarea
                           rows={3}
                           value={currentWidget.content.subtext || ''}
                           onChange={(e) => handleUpdateCurrentWidget({
                             content: { ...currentWidget.content, subtext: e.target.value }
                           })}
-                          placeholder="Enter supporting paragraph text..."
+                          placeholder="Enter supporting paragraph text... (Leave blank to remove)"
                           className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white focus:outline-none focus:border-orange-500 text-xs"
                         />
                       </div>
@@ -2042,8 +2329,8 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                         </div>
                       )}
 
-                      {/* Product Specific Controls */}
-                      {(currentWidget.type === 'product_grid' || currentWidget.type === 'featured_products' || currentWidget.type === 'latest_products' || currentWidget.type === 'bestseller_products' || currentWidget.type === 'product_carousel') && (
+                      {/* Product Specific Controls (Grids) */}
+                      {(currentWidget.type === 'product_grid' || currentWidget.type === 'featured_products' || currentWidget.type === 'latest_products' || currentWidget.type === 'bestseller_products') && (
                         <div className="space-y-3 pt-2 border-t border-[#2c3338]">
                           <div>
                             <label className="block text-slate-400 font-semibold mb-1">Filter by Category</label>
@@ -2088,6 +2375,1203 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                                 <option value={5}>5 Columns</option>
                                 <option value={6}>6 Columns</option>
                               </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Category Grid Specific Controls (Add / Remove Categories, Columns, Limit, Border Radius) */}
+                      {(currentWidget.type === 'category_grid' || currentWidget.type === 'product_categories') && (
+                        <div className="space-y-3.5 pt-2 border-t border-[#2c3338]">
+                          {/* Columns & Limit */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-slate-400 font-semibold mb-1">Columns</label>
+                              <select
+                                value={currentWidget.settings.columnsCount || 6}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, columnsCount: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
+                              >
+                                <option value={2}>2 Columns</option>
+                                <option value={3}>3 Columns</option>
+                                <option value={4}>4 Columns</option>
+                                <option value={5}>5 Columns</option>
+                                <option value={6}>6 Columns</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-slate-400 font-semibold mb-1">Max Items Limit</label>
+                              <input
+                                type="number"
+                                placeholder="All (or number)"
+                                value={currentWidget.settings.categoriesLimit || ''}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, categoriesLimit: e.target.value ? Number(e.target.value) : undefined }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Quick Toggle: Show Item Count */}
+                          <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs py-1">
+                            <input
+                              type="checkbox"
+                              checked={currentWidget.settings.showItemCount !== false}
+                              onChange={(e) => handleUpdateCurrentWidget({
+                                settings: { ...currentWidget.settings, showItemCount: e.target.checked }
+                              })}
+                              className="w-3.5 h-3.5 accent-orange-600 rounded cursor-pointer"
+                            />
+                            <span>Show Product Count Badge ("22 items")</span>
+                          </label>
+
+                          {/* Card Border Radius Control */}
+                          <div className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <label className="text-slate-300 font-semibold text-xs">Card Border Radius</label>
+                              <span className="text-orange-400 font-mono text-xs font-bold">
+                                {(currentWidget.settings.categoryCardBorderRadius ?? currentWidget.settings.borderRadius ?? 12)}px
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="32"
+                              step="2"
+                              value={currentWidget.settings.categoryCardBorderRadius ?? currentWidget.settings.borderRadius ?? 12}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                handleUpdateCurrentWidget({
+                                  settings: {
+                                    ...currentWidget.settings,
+                                    borderRadius: val,
+                                    categoryCardBorderRadius: val
+                                  }
+                                });
+                              }}
+                              className="w-full accent-orange-500 cursor-pointer h-1.5 bg-[#252c32] rounded-lg"
+                            />
+                            <div className="grid grid-cols-5 gap-1 mt-2">
+                              {[
+                                { label: 'Sharp', val: 0 },
+                                { label: '6px', val: 6 },
+                                { label: '12px', val: 12 },
+                                { label: '16px', val: 16 },
+                                { label: '24px', val: 24 }
+                              ].map(preset => (
+                                <button
+                                  key={preset.val}
+                                  type="button"
+                                  onClick={() => handleUpdateCurrentWidget({
+                                    settings: {
+                                      ...currentWidget.settings,
+                                      borderRadius: preset.val,
+                                      categoryCardBorderRadius: preset.val
+                                    }
+                                  })}
+                                  className={`py-1 text-[10px] rounded border text-center transition cursor-pointer ${
+                                    (currentWidget.settings.categoryCardBorderRadius ?? currentWidget.settings.borderRadius ?? 12) === preset.val
+                                      ? 'bg-orange-600 border-orange-500 text-white font-bold'
+                                      : 'bg-[#191e23] border-[#2c3338] text-slate-400 hover:text-white'
+                                  }`}
+                                >
+                                  {preset.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* CATEGORY SELECTION: ADD / REMOVE CATEGORIES */}
+                          <div className="pt-2 border-t border-[#2c3338]">
+                            {(() => {
+                              const selectedSlugs = currentWidget.settings.selectedCategorySlugs ?? categories.map(c => c.slug);
+                              const filteredList = categories.filter(c => 
+                                !categorySearchQuery || 
+                                c.name.toLowerCase().includes(categorySearchQuery.toLowerCase()) || 
+                                c.slug.toLowerCase().includes(categorySearchQuery.toLowerCase())
+                              );
+
+                              const handleToggleCategory = (slug: string) => {
+                                const isCurrentlySelected = selectedSlugs.includes(slug);
+                                const newSlugs = isCurrentlySelected
+                                  ? selectedSlugs.filter(s => s !== slug)
+                                  : [...selectedSlugs, slug];
+                                handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, selectedCategorySlugs: newSlugs }
+                                });
+                              };
+
+                              const handleSelectAll = () => {
+                                handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, selectedCategorySlugs: categories.map(c => c.slug) }
+                                });
+                              };
+
+                              const handleClearAll = () => {
+                                handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, selectedCategorySlugs: [] }
+                                });
+                              };
+
+                              return (
+                                <div>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <label className="text-slate-200 font-bold text-xs flex items-center gap-1.5">
+                                      <Layers className="w-3.5 h-3.5 text-orange-400" />
+                                      <span>Categories ({selectedSlugs.length}/{categories.length} active)</span>
+                                    </label>
+                                    <div className="flex items-center gap-1.5 text-[11px]">
+                                      <button
+                                        type="button"
+                                        onClick={handleSelectAll}
+                                        className="text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                                      >
+                                        Select All
+                                      </button>
+                                      <span className="text-slate-600">•</span>
+                                      <button
+                                        type="button"
+                                        onClick={handleClearAll}
+                                        className="text-slate-400 hover:text-red-400 font-medium cursor-pointer"
+                                      >
+                                        Clear
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <p className="text-[11px] text-slate-400 mb-2">
+                                    Check or uncheck categories below to add or remove them from this section.
+                                  </p>
+
+                                  {/* Filter input */}
+                                  <div className="relative mb-2">
+                                    <Search className="w-3 h-3 text-slate-500 absolute left-2.5 top-2.5" />
+                                    <input
+                                      type="text"
+                                      value={categorySearchQuery}
+                                      onChange={(e) => setCategorySearchQuery(e.target.value)}
+                                      placeholder="Filter categories..."
+                                      className="w-full pl-7 pr-7 py-1 bg-[#13171a] border border-[#2c3338] rounded-md text-white text-[11px] focus:outline-none focus:border-orange-500"
+                                    />
+                                    {categorySearchQuery && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setCategorySearchQuery('')}
+                                        className="absolute right-2 top-2 text-slate-400 hover:text-white"
+                                      >
+                                        <X className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {/* Categories checklist */}
+                                  <div className="max-h-56 overflow-y-auto space-y-1 pr-1 border border-[#2c3338] rounded-lg p-1.5 bg-[#13171a]">
+                                    {filteredList.map(cat => {
+                                      const isSelected = selectedSlugs.includes(cat.slug) || selectedSlugs.includes(cat.id);
+                                      const count = products.filter(p => isProductInCategory(p, cat.slug)).length;
+                                      return (
+                                        <div
+                                          key={cat.id}
+                                          onClick={() => handleToggleCategory(cat.slug)}
+                                          className={`flex items-center gap-2.5 p-1.5 rounded cursor-pointer transition select-none ${
+                                            isSelected
+                                              ? 'bg-orange-500/15 border border-orange-500/40 text-white'
+                                              : 'hover:bg-[#1a2024] border border-transparent text-slate-400 hover:text-slate-200 opacity-60 hover:opacity-100'
+                                          }`}
+                                        >
+                                          <input
+                                            type="checkbox"
+                                            checked={isSelected}
+                                            onChange={() => {}} // Handled by parent container click
+                                            className="w-3.5 h-3.5 accent-orange-600 rounded cursor-pointer shrink-0 pointer-events-none"
+                                          />
+                                          <div className="w-7 h-7 rounded bg-slate-800 border border-slate-700 overflow-hidden shrink-0 flex items-center justify-center">
+                                            <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <span className="text-xs font-semibold block truncate leading-tight">
+                                              {cat.name}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 block leading-tight">
+                                              {count} {count === 1 ? 'item' : 'items'}
+                                            </span>
+                                          </div>
+                                          {isSelected ? (
+                                            <span className="text-[10px] font-bold text-orange-400 shrink-0 bg-orange-950/60 px-1.5 py-0.5 rounded border border-orange-800/50">
+                                              Visible
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] text-slate-500 shrink-0">
+                                              Hidden
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Create new category inline */}
+                                  <div className="mt-2.5">
+                                    {!isAddingNewCatInline ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => setIsAddingNewCatInline(true)}
+                                        className="w-full py-1.5 px-3 bg-[#191e23] hover:bg-[#252c32] text-slate-300 hover:text-white rounded-lg border border-[#2c3338] text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition"
+                                      >
+                                        <Plus className="w-3.5 h-3.5 text-orange-400" />
+                                        <span>+ Add New Category</span>
+                                      </button>
+                                    ) : (
+                                      <div className="p-3 bg-[#171b1f] border border-orange-500/40 rounded-lg space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-xs font-bold text-orange-400 flex items-center gap-1">
+                                            <Plus className="w-3.5 h-3.5" />
+                                            Create New Category
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setIsAddingNewCatInline(false)}
+                                            className="text-slate-400 hover:text-white"
+                                          >
+                                            <X className="w-3.5 h-3.5" />
+                                          </button>
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] text-slate-400 mb-0.5">Category Name</label>
+                                          <input
+                                            type="text"
+                                            placeholder="e.g. Paper Shredders"
+                                            value={newCatName}
+                                            onChange={(e) => setNewCatName(e.target.value)}
+                                            className="w-full px-2.5 py-1 bg-[#101418] border border-[#2c3338] rounded text-xs text-white focus:outline-none focus:border-orange-500"
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="block text-[10px] text-slate-400 mb-0.5">Image URL (optional)</label>
+                                          <input
+                                            type="text"
+                                            placeholder="https://... or leave blank"
+                                            value={newCatImage}
+                                            onChange={(e) => setNewCatImage(e.target.value)}
+                                            className="w-full px-2.5 py-1 bg-[#101418] border border-[#2c3338] rounded text-xs text-white font-mono text-[10px] focus:outline-none focus:border-orange-500"
+                                          />
+                                        </div>
+                                        <div className="flex items-center gap-2 pt-1">
+                                          <button
+                                            type="button"
+                                            disabled={!newCatName.trim()}
+                                            onClick={() => {
+                                              if (!newCatName.trim()) return;
+                                              const slug = newCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-');
+                                              const newCat: Category = {
+                                                id: `cat-${Date.now()}`,
+                                                name: newCatName.trim(),
+                                                slug: slug,
+                                                iconName: 'Folder',
+                                                itemCount: 0,
+                                                image: newCatImage.trim() || 'https://images.unsplash.com/photo-1588854337236-6889d631faa8?auto=format&fit=crop&w=600&q=80',
+                                                description: `Certified ${newCatName.trim()} for corporate office environments.`,
+                                                subcategories: []
+                                              };
+                                              if (onAddCategory) {
+                                                onAddCategory(newCat);
+                                              }
+                                              // Add to current widget's selected list
+                                              const updatedSlugs = [...selectedSlugs, slug];
+                                              handleUpdateCurrentWidget({
+                                                settings: { ...currentWidget.settings, selectedCategorySlugs: updatedSlugs }
+                                              });
+                                              setNewCatName('');
+                                              setNewCatImage('');
+                                              setIsAddingNewCatInline(false);
+                                            }}
+                                            className="flex-1 py-1.5 bg-orange-600 hover:bg-orange-500 disabled:opacity-40 text-white rounded text-xs font-bold cursor-pointer transition"
+                                          >
+                                            Save & Add to Grid
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setIsAddingNewCatInline(false)}
+                                            className="py-1.5 px-3 bg-[#252c32] hover:bg-[#2e373e] text-slate-300 rounded text-xs cursor-pointer"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* BANNER SLIDER & HERO CAROUSEL CONTROLS */}
+                      {(currentWidget.type === 'banner_slider' || currentWidget.type === 'hero_slider') && (
+                        <div className="space-y-4 pt-3 border-t border-[#2c3338]">
+                          {/* Source Mode Switcher */}
+                          <div>
+                            <label className="block text-slate-400 font-semibold mb-1.5 text-xs">
+                              Slider Content Source
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, sliderSource: 'homepage-hero' }
+                                })}
+                                className={`px-2.5 py-2 rounded-lg text-xs font-bold border transition text-center cursor-pointer ${
+                                  (currentWidget.settings.sliderSource !== 'custom')
+                                    ? 'bg-orange-600/20 text-orange-400 border-orange-500/50'
+                                    : 'bg-[#13171a] text-slate-400 border-[#2c3338] hover:text-white'
+                                }`}
+                              >
+                                Admin Banners Sync
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, sliderSource: 'custom' }
+                                })}
+                                className={`px-2.5 py-2 rounded-lg text-xs font-bold border transition text-center cursor-pointer ${
+                                  currentWidget.settings.sliderSource === 'custom'
+                                    ? 'bg-orange-600/20 text-orange-400 border-orange-500/50'
+                                    : 'bg-[#13171a] text-slate-400 border-[#2c3338] hover:text-white'
+                                }`}
+                              >
+                                Custom Slides
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Admin Banners Sync Mode */}
+                          {currentWidget.settings.sliderSource !== 'custom' && (
+                            <div className="p-3 bg-[#13171a] rounded-lg border border-[#2c3338] space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-bold text-slate-200">
+                                  Synchronized Slides ({slides.length})
+                                </span>
+                                <span className="text-[10px] bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 font-bold">
+                                  Auto-Synced
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 leading-relaxed">
+                                This slider is directly synchronized with your admin <strong>Sliders &amp; Banners</strong> management tab. All changes, reorderings, and image updates made there reflect here automatically.
+                              </p>
+                              <div className="space-y-1.5 pt-1">
+                                {slides.map((s, sIdx) => (
+                                  <div key={s.id || sIdx} className="flex items-center gap-2 px-2.5 py-1.5 bg-[#181d22] rounded border border-[#2c3338]/60 text-xs">
+                                    <span className="w-4 h-4 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold flex items-center justify-center shrink-0">
+                                      {sIdx + 1}
+                                    </span>
+                                    <div className="flex-1 truncate">
+                                      <span className="text-slate-200 font-semibold">{s.mainTitle}</span>
+                                    </div>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${s.enabled ? 'text-emerald-400 bg-emerald-950/50' : 'text-slate-500 bg-slate-800'}`}>
+                                      {s.enabled ? 'Active' : 'Disabled'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Custom Slides Mode */}
+                          {currentWidget.settings.sliderSource === 'custom' && (
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <label className="text-slate-400 font-semibold text-xs">Custom Slide Items</label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentItems = currentWidget.content.items || [];
+                                    const newSlide = {
+                                      id: `slide-${Date.now()}`,
+                                      title: 'EXECUTIVE CORPORATE SUPPLIES',
+                                      badge: 'EXCLUSIVE',
+                                      description: 'OFFICIAL OEM PROCUREMENT',
+                                      subtext: 'GENUINE TONERS & EXECUTIVE FURNITURE',
+                                      buttonText: 'REQUEST QUOTE',
+                                      buttonUrl: '/rfq',
+                                      secondaryBtnText: 'VIEW CATALOG',
+                                      secondaryBtnUrl: '/shop',
+                                      image: '/executive-tables-banner.jpg',
+                                      deliveryText: 'Same-Day Lagos White-Glove Assembled Delivery'
+                                    };
+                                    handleUpdateCurrentWidget({
+                                      content: { ...currentWidget.content, items: [...currentItems, newSlide] }
+                                    });
+                                  }}
+                                  className="text-xs text-orange-400 hover:text-orange-300 font-bold flex items-center gap-1 cursor-pointer"
+                                >
+                                  <Plus className="w-3 h-3" /> Add Slide
+                                </button>
+                              </div>
+
+                              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                                {(currentWidget.content.items || []).map((slideItem, idx) => (
+                                  <div key={slideItem.id || idx} className="p-2.5 bg-[#13171a] rounded-lg border border-[#2c3338] space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-orange-400">Slide #{idx + 1}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const filtered = (currentWidget.content.items || []).filter((_, i) => i !== idx);
+                                          handleUpdateCurrentWidget({
+                                            content: { ...currentWidget.content, items: filtered }
+                                          });
+                                        }}
+                                        className="text-slate-500 hover:text-rose-400 text-xs cursor-pointer"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Title / Headline</label>
+                                      <input
+                                        type="text"
+                                        value={slideItem.title || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], title: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Tagline / Description</label>
+                                      <input
+                                        type="text"
+                                        value={slideItem.description || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], description: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      />
+                                    </div>
+
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Image URL</label>
+                                      <div className="flex gap-1.5">
+                                        <input
+                                          type="text"
+                                          value={slideItem.image || slideItem.imageUrl || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(currentWidget.content.items || [])];
+                                            updated[idx] = { ...updated[idx], image: e.target.value, imageUrl: e.target.value };
+                                            handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                          }}
+                                          className="flex-1 px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs font-mono text-[11px]"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedSlideIndexForMedia(idx);
+                                            setMediaTargetField('widget-slide-image');
+                                            setIsMediaPickerOpen(true);
+                                          }}
+                                          className="px-2 py-1 bg-[#20262c] hover:bg-[#2a323a] text-slate-200 rounded text-[11px] font-bold shrink-0 cursor-pointer"
+                                        >
+                                          Pick
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-1.5">
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 mb-0.5">Button 1 Text</label>
+                                        <input
+                                          type="text"
+                                          value={slideItem.buttonText || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(currentWidget.content.items || [])];
+                                            updated[idx] = { ...updated[idx], buttonText: e.target.value };
+                                            handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                          }}
+                                          className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                        />
+                                      </div>
+                                      <div>
+                                        <label className="block text-[10px] text-slate-400 mb-0.5">Button 1 URL</label>
+                                        <input
+                                          type="text"
+                                          value={slideItem.buttonUrl || ''}
+                                          onChange={(e) => {
+                                            const updated = [...(currentWidget.content.items || [])];
+                                            updated[idx] = { ...updated[idx], buttonUrl: e.target.value };
+                                            handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                          }}
+                                          className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Slider Playback & Rotation Settings */}
+                          <div className="pt-2 border-t border-[#2c3338] space-y-2.5">
+                            <label className="block text-slate-400 font-semibold text-xs">Slider Timing &amp; Dimensions</label>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] text-slate-400 mb-1">Rotation Speed</label>
+                                <select
+                                  value={currentWidget.settings.sliderInterval || 6000}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, sliderInterval: Number(e.target.value) }
+                                  })}
+                                  className="w-full px-2 py-1.5 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
+                                >
+                                  <option value={3000}>3 seconds</option>
+                                  <option value={5000}>5 seconds</option>
+                                  <option value={6000}>6 seconds (Default)</option>
+                                  <option value={8000}>8 seconds</option>
+                                  <option value={10000}>10 seconds</option>
+                                </select>
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] text-slate-400 mb-1">Slider Height</label>
+                                <select
+                                  value={currentWidget.settings.sliderHeight || '520px'}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, sliderHeight: e.target.value }
+                                  })}
+                                  className="w-full px-2 py-1.5 bg-[#13171a] border border-[#2c3338] rounded text-white text-xs"
+                                >
+                                  <option value="460px">Compact (460px)</option>
+                                  <option value="520px">Standard (520px)</option>
+                                  <option value="600px">Spacious (600px)</option>
+                                  <option value="650px">Large (650px)</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 pt-1">
+                              <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={currentWidget.settings.sliderAutoplay !== false}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, sliderAutoplay: e.target.checked }
+                                  })}
+                                  className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                                />
+                                Autoplay Rotation
+                              </label>
+
+                              <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                                <input
+                                  type="checkbox"
+                                  checked={currentWidget.settings.sliderShowArrows !== false}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, sliderShowArrows: e.target.checked }
+                                  })}
+                                  className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                                />
+                                Show Nav Arrows
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* PRODUCT SLIDER & CAROUSEL CONTROLS */}
+                      {(currentWidget.type === 'product_carousel' || currentWidget.type === 'product_slider') && (
+                        <div className="space-y-4 pt-3 border-t border-[#2c3338]">
+                          <div>
+                            <label className="block text-slate-400 font-semibold mb-1 text-xs">Filter By Category</label>
+                            <select
+                              value={currentWidget.settings.productCategory || 'all'}
+                              onChange={(e) => handleUpdateCurrentWidget({
+                                settings: { ...currentWidget.settings, productCategory: e.target.value }
+                              })}
+                              className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                            >
+                              <option value="all">All Store Products</option>
+                              {categories.map((c) => (
+                                <option key={c.id} value={c.slug}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-slate-400 font-semibold mb-1 text-xs">Brand Filter (Optional)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. HP, Canon, Sharp, Epson"
+                              value={currentWidget.settings.productBrand || ''}
+                              onChange={(e) => handleUpdateCurrentWidget({
+                                settings: { ...currentWidget.settings, productBrand: e.target.value }
+                              })}
+                              className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Products Limit</label>
+                              <input
+                                type="number"
+                                min={2}
+                                max={30}
+                                value={currentWidget.settings.productsLimit || 12}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, productsLimit: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Items Per View</label>
+                              <select
+                                value={currentWidget.settings.productSliderItemsToShow || 4}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, productSliderItemsToShow: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              >
+                                <option value={2}>2 Products</option>
+                                <option value={3}>3 Products</option>
+                                <option value={4}>4 Products (Standard)</option>
+                                <option value={5}>5 Products</option>
+                                <option value={6}>6 Products</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Autoplay Rotation</label>
+                              <select
+                                value={currentWidget.settings.productSliderInterval || 5000}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, productSliderInterval: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              >
+                                <option value={3000}>Every 3 seconds</option>
+                                <option value={4000}>Every 4 seconds</option>
+                                <option value={5000}>Every 5 seconds</option>
+                                <option value={7000}>Every 7 seconds</option>
+                              </select>
+                            </div>
+                            <div className="flex flex-col justify-end">
+                              <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs py-1.5">
+                                <input
+                                  type="checkbox"
+                                  checked={currentWidget.settings.productSliderAutoplay !== false}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, productSliderAutoplay: e.target.checked }
+                                  })}
+                                  className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                                />
+                                <span>Autoplay On</span>
+                              </label>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 pt-1">
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(currentWidget.settings.onlyFeatured)}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, onlyFeatured: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>Only Featured</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(currentWidget.settings.onlySale)}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, onlySale: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>On Sale Only</span>
+                            </label>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* LOGO SLIDER & BRAND MARQUEE CONTROLS */}
+                      {(currentWidget.type === 'brand_logos' || currentWidget.type === 'client_logos' || currentWidget.type === 'logo_slider') && (
+                        <div className="space-y-4 pt-3 border-t border-[#2c3338]">
+                          <div>
+                            <label className="block text-slate-400 font-semibold mb-1 text-xs">Display Mode</label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, logoSliderMode: 'marquee' }
+                                })}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition text-center cursor-pointer ${
+                                  (currentWidget.settings.logoSliderMode !== 'carousel')
+                                    ? 'bg-orange-600/20 text-orange-400 border-orange-500/50'
+                                    : 'bg-[#13171a] text-slate-400 border-[#2c3338] hover:text-white'
+                                }`}
+                              >
+                                Continuous Marquee
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, logoSliderMode: 'carousel' }
+                                })}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition text-center cursor-pointer ${
+                                  currentWidget.settings.logoSliderMode === 'carousel'
+                                    ? 'bg-orange-600/20 text-orange-400 border-orange-500/50'
+                                    : 'bg-[#13171a] text-slate-400 border-[#2c3338] hover:text-white'
+                                }`}
+                              >
+                                Interactive Carousel
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">
+                                {currentWidget.settings.logoSliderMode === 'carousel' ? 'Items Visible' : 'Ticker Speed'}
+                              </label>
+                              {currentWidget.settings.logoSliderMode === 'carousel' ? (
+                                <select
+                                  value={currentWidget.settings.logoSliderItemsToShow || 5}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, logoSliderItemsToShow: Number(e.target.value) }
+                                  })}
+                                  className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                                >
+                                  <option value={3}>3 Logos</option>
+                                  <option value={4}>4 Logos</option>
+                                  <option value={5}>5 Logos</option>
+                                  <option value={6}>6 Logos</option>
+                                </select>
+                              ) : (
+                                <select
+                                  value={currentWidget.settings.logoSliderSpeed || 32}
+                                  onChange={(e) => handleUpdateCurrentWidget({
+                                    settings: { ...currentWidget.settings, logoSliderSpeed: Number(e.target.value) }
+                                  })}
+                                  className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                                >
+                                  <option value={18}>Fast (18s)</option>
+                                  <option value={25}>Moderate (25s)</option>
+                                  <option value={32}>Smooth (32s Default)</option>
+                                  <option value={45}>Gentle (45s)</option>
+                                  <option value={60}>Very Slow (60s)</option>
+                                </select>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Card Border Radius</label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={30}
+                                value={currentWidget.settings.logoSliderBorderRadius ?? 10}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, logoSliderBorderRadius: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 pt-1">
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={currentWidget.settings.logoSliderGrayscale !== false}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, logoSliderGrayscale: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>Grayscale (Color on hover)</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={currentWidget.settings.logoSliderPauseOnHover !== false}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, logoSliderPauseOnHover: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>Pause on Hover</span>
+                            </label>
+                          </div>
+
+                          {/* Logos list */}
+                          <div className="space-y-2 pt-2 border-t border-[#2c3338]">
+                            <div className="flex items-center justify-between">
+                              <label className="text-slate-400 font-semibold text-xs">
+                                Brand &amp; Partner Logos ({currentWidget.content.items?.length || 0})
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentItems = currentWidget.content.items || [];
+                                  const newLogo = {
+                                    id: `logo-${Date.now()}`,
+                                    title: 'Brand Partner',
+                                    image: 'https://ofixbaze.com/wp-content/uploads/2020/04/HP-LOGO.jpg',
+                                    link: '/shop'
+                                  };
+                                  handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: [...currentItems, newLogo] } });
+                                }}
+                                className="px-2 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded text-[11px] font-bold cursor-pointer"
+                              >
+                                + Add Logo
+                              </button>
+                            </div>
+
+                            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                              {(currentWidget.content.items || []).map((logoItem, idx) => (
+                                <div key={logoItem.id || idx} className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg space-y-2 text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-200">Logo #{idx + 1}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...(currentWidget.content.items || [])];
+                                        updated.splice(idx, 1);
+                                        handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                      }}
+                                      className="text-red-400 hover:text-red-300 cursor-pointer text-[10px]"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-slate-400 mb-0.5">Brand / Company Name</label>
+                                    <input
+                                      type="text"
+                                      value={logoItem.title || ''}
+                                      onChange={(e) => {
+                                        const updated = [...(currentWidget.content.items || [])];
+                                        updated[idx] = { ...updated[idx], title: e.target.value };
+                                        handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                      }}
+                                      className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      placeholder="e.g. HP Authorized"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-slate-400 mb-0.5">Logo Image URL</label>
+                                    <div className="flex gap-1.5">
+                                      <input
+                                        type="text"
+                                        value={logoItem.image || logoItem.imageUrl || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], image: e.target.value, imageUrl: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="flex-1 px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                        placeholder="https://..."
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedSlideIndexForMedia(idx);
+                                          setMediaTargetField('widget-slide-image');
+                                          setIsMediaPickerOpen(true);
+                                        }}
+                                        className="px-2 py-1 bg-[#20262c] hover:bg-[#2a323a] text-slate-200 rounded text-[11px] font-bold shrink-0 cursor-pointer"
+                                      >
+                                        Pick
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-slate-400 mb-0.5">Link URL</label>
+                                    <input
+                                      type="text"
+                                      value={logoItem.link || ''}
+                                      onChange={(e) => {
+                                        const updated = [...(currentWidget.content.items || [])];
+                                        updated[idx] = { ...updated[idx], link: e.target.value };
+                                        handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                      }}
+                                      className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      placeholder="/shop?brand=hp"
+                                    />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* IMAGE SLIDER & MULTI-IMAGE CAROUSEL CONTROLS */}
+                      {currentWidget.type === 'image_slider' && (
+                        <div className="space-y-4 pt-3 border-t border-[#2c3338]">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Slider Height</label>
+                              <select
+                                value={currentWidget.settings.imageSliderHeight || '440px'}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderHeight: e.target.value }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              >
+                                <option value="320px">Compact (320px)</option>
+                                <option value="400px">Standard (400px)</option>
+                                <option value="440px">Showcase (440px)</option>
+                                <option value="520px">Tall (520px)</option>
+                                <option value="600px">Jumbo (600px)</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Rotation Timing</label>
+                              <select
+                                value={currentWidget.settings.imageSliderInterval || 6000}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderInterval: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              >
+                                <option value={3000}>3 seconds</option>
+                                <option value={5000}>5 seconds</option>
+                                <option value={6000}>6 seconds (Default)</option>
+                                <option value={8000}>8 seconds</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Corner Radius</label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={36}
+                                value={currentWidget.settings.imageSliderBorderRadius ?? 16}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderBorderRadius: Number(e.target.value) }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] text-slate-400 mb-1">Image Fit</label>
+                              <select
+                                value={currentWidget.settings.imageSliderObjectFit || 'cover'}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderObjectFit: e.target.value as any }
+                                })}
+                                className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              >
+                                <option value="cover">Cover (Full bleed crop)</option>
+                                <option value="contain">Contain (No crop)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 pt-1">
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={currentWidget.settings.imageSliderAutoplay !== false}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderAutoplay: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>Autoplay On</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={currentWidget.settings.imageSliderShowArrows !== false}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderShowArrows: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>Nav Arrows</span>
+                            </label>
+
+                            <label className="flex items-center gap-2 cursor-pointer text-slate-300 text-xs">
+                              <input
+                                type="checkbox"
+                                checked={currentWidget.settings.imageSliderShowDots !== false}
+                                onChange={(e) => handleUpdateCurrentWidget({
+                                  settings: { ...currentWidget.settings, imageSliderShowDots: e.target.checked }
+                                })}
+                                className="rounded bg-[#13171a] border-[#2c3338] text-orange-500 focus:ring-0"
+                              />
+                              <span>Dots</span>
+                            </label>
+                          </div>
+
+                          {/* Slides manager */}
+                          <div className="space-y-2 pt-2 border-t border-[#2c3338]">
+                            <div className="flex items-center justify-between">
+                              <label className="text-slate-400 font-semibold text-xs">
+                                Image Slides ({currentWidget.content.items?.length || 0})
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentItems = currentWidget.content.items || [];
+                                  const newSlide = {
+                                    id: `img-${Date.now()}`,
+                                    title: 'Executive Workstations',
+                                    description: 'Premium modular office desks crafted for modern business hubs.',
+                                    badge: 'NEW COLLECTION',
+                                    image: '/executive-tables-banner.jpg',
+                                    buttonText: 'DISCOVER MORE',
+                                    buttonUrl: '/shop'
+                                  };
+                                  handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: [...currentItems, newSlide] } });
+                                }}
+                                className="px-2 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded text-[11px] font-bold cursor-pointer"
+                              >
+                                + Add Slide
+                              </button>
+                            </div>
+
+                            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                              {(currentWidget.content.items || []).map((slide, idx) => (
+                                <div key={slide.id || idx} className="p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg space-y-2 text-xs">
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-200">Slide #{idx + 1}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...(currentWidget.content.items || [])];
+                                        updated.splice(idx, 1);
+                                        handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                      }}
+                                      className="text-red-400 hover:text-red-300 cursor-pointer text-[10px]"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-slate-400 mb-0.5">Image URL</label>
+                                    <div className="flex gap-1.5">
+                                      <input
+                                        type="text"
+                                        value={slide.image || slide.imageUrl || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], image: e.target.value, imageUrl: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="flex-1 px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setSelectedSlideIndexForMedia(idx);
+                                          setMediaTargetField('widget-slide-image');
+                                          setIsMediaPickerOpen(true);
+                                        }}
+                                        className="px-2 py-1 bg-[#20262c] hover:bg-[#2a323a] text-slate-200 rounded text-[11px] font-bold shrink-0 cursor-pointer"
+                                      >
+                                        Pick
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Badge</label>
+                                      <input
+                                        type="text"
+                                        value={slide.badge || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], badge: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                        placeholder="FLAGSHIP"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Title</label>
+                                      <input
+                                        type="text"
+                                        value={slide.title || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], title: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                        placeholder="Slide Title"
+                                      />
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="block text-[10px] text-slate-400 mb-0.5">Description</label>
+                                    <input
+                                      type="text"
+                                      value={slide.description || slide.subtext || ''}
+                                      onChange={(e) => {
+                                        const updated = [...(currentWidget.content.items || [])];
+                                        updated[idx] = { ...updated[idx], description: e.target.value, subtext: e.target.value };
+                                        handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                      }}
+                                      className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                    />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Button Text</label>
+                                      <input
+                                        type="text"
+                                        value={slide.buttonText || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], buttonText: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="block text-[10px] text-slate-400 mb-0.5">Button URL</label>
+                                      <input
+                                        type="text"
+                                        value={slide.buttonUrl || slide.link || ''}
+                                        onChange={(e) => {
+                                          const updated = [...(currentWidget.content.items || [])];
+                                          updated[idx] = { ...updated[idx], buttonUrl: e.target.value, link: e.target.value };
+                                          handleUpdateCurrentWidget({ content: { ...currentWidget.content, items: updated } });
+                                        }}
+                                        className="w-full px-2 py-1 bg-[#181d22] border border-[#2c3338] rounded text-white text-xs"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         </div>
@@ -2215,22 +3699,43 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                           {/* Fixed Height Controls if mode is custom */}
                           {currentWidget.settings.imageHeightMode === 'custom' && (
                             <div className="space-y-2.5 p-2.5 bg-[#13171a] border border-[#2c3338] rounded-lg">
-                              <div>
-                                <label className="block text-slate-400 text-xs font-semibold mb-1">Fixed Height</label>
-                                <input
-                                  type="text"
-                                  value={currentWidget.settings.imageHeight || currentWidget.settings.minHeight || '420px'}
-                                  onChange={(e) => handleUpdateCurrentWidget({
-                                    settings: { 
-                                      ...currentWidget.settings, 
-                                      imageHeight: e.target.value,
-                                      minHeight: e.target.value
-                                    }
-                                  })}
-                                  placeholder="e.g. 420px, 50vh, 100%"
-                                  className="w-full px-2.5 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs font-mono"
-                                />
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-slate-400 text-xs font-semibold mb-1">Desktop Height</label>
+                                  <input
+                                    type="text"
+                                    value={currentWidget.settings.imageHeightDesktop || currentWidget.settings.imageHeight || '420px'}
+                                    onChange={(e) => handleUpdateCurrentWidget({
+                                      settings: { 
+                                        ...currentWidget.settings, 
+                                        imageHeight: e.target.value,
+                                        imageHeightDesktop: e.target.value
+                                      }
+                                    })}
+                                    placeholder="e.g. 420px, 50vh"
+                                    className="w-full px-2.5 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs font-mono"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-slate-400 text-xs font-semibold mb-1">Mobile Height</label>
+                                  <input
+                                    type="text"
+                                    value={currentWidget.settings.imageHeightMobile || currentWidget.settings.mobileImageHeight || 'auto'}
+                                    onChange={(e) => handleUpdateCurrentWidget({
+                                      settings: { 
+                                        ...currentWidget.settings, 
+                                        imageHeightMobile: e.target.value,
+                                        mobileImageHeight: e.target.value
+                                      }
+                                    })}
+                                    placeholder="auto or 200px"
+                                    className="w-full px-2.5 py-1 bg-[#191e23] border border-[#2c3338] rounded text-white text-xs font-mono"
+                                  />
+                                </div>
                               </div>
+                              <span className="text-[10px] text-slate-500 block">
+                                Set Mobile to "auto" to preserve responsive proportions and avoid empty whitespace.
+                              </span>
 
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
@@ -2597,16 +4102,111 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
 
                           {/* Border Radius */}
                           <div>
-                            <label className="block text-slate-400 font-semibold mb-1">Border Radius (px)</label>
+                            <div className="flex items-center justify-between mb-1">
+                              <label className="block text-slate-400 font-semibold text-xs">
+                                {currentWidget.type === 'category_grid' || currentWidget.type === 'product_categories'
+                                  ? 'Category Card Border Radius'
+                                  : 'Border Radius'}
+                              </label>
+                              <span className="text-orange-400 font-mono text-xs font-bold">
+                                {(currentWidget.settings.categoryCardBorderRadius ?? currentWidget.settings.borderRadius ?? 12)}px
+                              </span>
+                            </div>
                             <input
-                              type="number"
-                              value={currentWidget.settings.borderRadius ?? 8}
-                              onChange={(e) => handleUpdateCurrentWidget({
-                                settings: { ...currentWidget.settings, borderRadius: Number(e.target.value) }
-                              })}
-                              className="w-full px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
+                              type="range"
+                              min="0"
+                              max="32"
+                              step="2"
+                              value={currentWidget.settings.categoryCardBorderRadius ?? currentWidget.settings.borderRadius ?? 12}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                handleUpdateCurrentWidget({
+                                  settings: {
+                                    ...currentWidget.settings,
+                                    borderRadius: val,
+                                    categoryCardBorderRadius: val
+                                  }
+                                });
+                              }}
+                              className="w-full accent-orange-500 cursor-pointer h-1.5 bg-[#252c32] rounded-lg mb-2"
                             />
+                            <div className="grid grid-cols-5 gap-1">
+                              {[
+                                { label: 'Sharp', val: 0 },
+                                { label: '6px', val: 6 },
+                                { label: '12px', val: 12 },
+                                { label: '16px', val: 16 },
+                                { label: '24px', val: 24 }
+                              ].map(preset => (
+                                <button
+                                  key={preset.val}
+                                  type="button"
+                                  onClick={() => handleUpdateCurrentWidget({
+                                    settings: {
+                                      ...currentWidget.settings,
+                                      borderRadius: preset.val,
+                                      categoryCardBorderRadius: preset.val
+                                    }
+                                  })}
+                                  className={`py-1 text-[10px] rounded border text-center transition cursor-pointer ${
+                                    (currentWidget.settings.categoryCardBorderRadius ?? currentWidget.settings.borderRadius ?? 12) === preset.val
+                                      ? 'bg-orange-600 border-orange-500 text-white font-bold'
+                                      : 'bg-[#191e23] border-[#2c3338] text-slate-400 hover:text-white'
+                                  }`}
+                                >
+                                  {preset.label}
+                                </button>
+                              ))}
+                            </div>
                           </div>
+
+                          {/* Category Grid Card Colors */}
+                          {(currentWidget.type === 'category_grid' || currentWidget.type === 'product_categories') && (
+                            <div className="space-y-3 pt-2 border-t border-[#2c3338]">
+                              <div>
+                                <label className="block text-slate-400 font-semibold mb-1 text-xs">Card Background Color</label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="color"
+                                    value={currentWidget.settings.categoryCardBgColor || '#ffffff'}
+                                    onChange={(e) => handleUpdateCurrentWidget({
+                                      settings: { ...currentWidget.settings, categoryCardBgColor: e.target.value }
+                                    })}
+                                    className="w-8 h-8 rounded border border-slate-700 bg-transparent cursor-pointer"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={currentWidget.settings.categoryCardBgColor || '#ffffff'}
+                                    onChange={(e) => handleUpdateCurrentWidget({
+                                      settings: { ...currentWidget.settings, categoryCardBgColor: e.target.value }
+                                    })}
+                                    className="flex-1 px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-[11px]"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-slate-400 font-semibold mb-1 text-xs">Card Border Color</label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="color"
+                                    value={currentWidget.settings.categoryCardBorderColor || '#e2e8f0'}
+                                    onChange={(e) => handleUpdateCurrentWidget({
+                                      settings: { ...currentWidget.settings, categoryCardBorderColor: e.target.value }
+                                    })}
+                                    className="w-8 h-8 rounded border border-slate-700 bg-transparent cursor-pointer"
+                                  />
+                                  <input
+                                    type="text"
+                                    value={currentWidget.settings.categoryCardBorderColor || '#e2e8f0'}
+                                    onChange={(e) => handleUpdateCurrentWidget({
+                                      settings: { ...currentWidget.settings, categoryCardBorderColor: e.target.value }
+                                    })}
+                                    className="flex-1 px-3 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white font-mono text-[11px]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -3061,7 +4661,7 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                                 settings: { ...currentSection.settings, layout: mode }
                               })}
                               className={`py-1 text-center font-semibold rounded text-xs capitalize transition ${
-                                (currentSection.settings.layout || 'boxed') === mode ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
+                                (currentSection.settings.layout || 'full-width') === mode ? 'bg-orange-600 text-white' : 'text-slate-400 hover:text-white'
                               }`}
                             >
                               {mode.replace('-', ' ')}
@@ -3074,18 +4674,18 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
                       <div>
                         <label className="block text-slate-400 font-semibold mb-1 text-xs">Max Container Width</label>
                         <select
-                          value={currentSection.settings.contentMaxWidth || '1280px'}
+                          value={currentSection.settings.contentMaxWidth || '100%'}
                           onChange={(e) => handleUpdateCurrentSection({
                             settings: { ...currentSection.settings, contentMaxWidth: e.target.value }
                           })}
                           className="w-full px-2.5 py-1.5 bg-[#13171a] border border-[#2c3338] rounded-lg text-white text-xs"
                         >
-                          <option value="960px">Compact (960px)</option>
-                          <option value="1140px">Standard (1140px)</option>
-                          <option value="1280px">Default Modern (1280px / 7xl)</option>
-                          <option value="1440px">Wide Modern (1440px)</option>
+                          <option value="100%">100% Fluid (Window Fit)</option>
                           <option value="1600px">Ultra-Wide (1600px)</option>
-                          <option value="100%">100% Fluid</option>
+                          <option value="1440px">Wide Modern (1440px)</option>
+                          <option value="1280px">Default Modern (1280px / 7xl)</option>
+                          <option value="1140px">Standard (1140px)</option>
+                          <option value="960px">Compact (960px)</option>
                         </select>
                       </div>
 
@@ -3749,6 +5349,18 @@ export const AdminPageBuilderTab: React.FC<AdminPageBuilderTabProps> = ({
               handleUpdateCurrentSection({
                 settings: { ...currentSection?.settings, bgImage: imageUrl }
               });
+            } else if (mediaTargetField === 'widget-slide-image' && selectedSlideIndexForMedia !== null && currentWidget?.content.items) {
+              const updatedItems = [...currentWidget.content.items];
+              if (updatedItems[selectedSlideIndexForMedia]) {
+                updatedItems[selectedSlideIndexForMedia] = {
+                  ...updatedItems[selectedSlideIndexForMedia],
+                  image: imageUrl,
+                  imageUrl: imageUrl
+                };
+                handleUpdateCurrentWidget({
+                  content: { ...currentWidget.content, items: updatedItems }
+                });
+              }
             }
             setIsMediaPickerOpen(false);
           }}

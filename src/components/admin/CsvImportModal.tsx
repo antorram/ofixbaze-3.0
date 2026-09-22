@@ -404,7 +404,7 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                       <th className="py-2.5 px-3">Product Name</th>
                       <th className="py-2.5 px-3">Category</th>
                       <th className="py-2.5 px-3">SKU</th>
-                      <th className="py-2.5 px-3">Price (NGN)</th>
+                      <th className="py-2.5 px-3">Pricing Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -433,8 +433,8 @@ export const CsvImportModal: React.FC<CsvImportModalProps> = ({
                         <td className="py-2 px-3 font-mono text-[11px] text-slate-500">
                           {p.sku}
                         </td>
-                        <td className="py-2 px-3 font-bold text-slate-900">
-                          ₦{p.priceNGN.toLocaleString()}
+                        <td className="py-2 px-3 font-bold text-orange-600 text-[11px] uppercase">
+                          Price on Request
                         </td>
                       </tr>
                     ))}
